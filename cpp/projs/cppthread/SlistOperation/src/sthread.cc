@@ -26,20 +26,27 @@ template void enqueue<int>(slist<int>&);
 template void dequeue<int>(slist<int>&);
 
 template <typename T> void enqueue_async(class slist<T> &l) {
-    enqueue(l);
+    //enqueue(l);
     std::vector<std::future<void>> asynclist;
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < MAX_ACT; i++) {
         std::future<void> f = std::async(std::launch::async, &enqueue<int>, std::ref(l));
         asynclist.push_back(std::move(f));
     }
-    /*for (auto &x : asynclist) {
-        int count = 0;
-        std::cout << "Iterating " << count++ << std::endl;
+
+    for (int i = 0; i < MAX_ACT; i++) {
+        std::future<void> f = std::async(std::launch::async, &dequeue<int>, std::ref(l));
+        asynclist.push_back(std::move(f));
+    }
+
+    int count = 0;
+    for (auto &x : asynclist) {
+        std::cout << "Iterating over Async task : " << count << std::endl;
+	count++;
         x.get();
-    }*/
-    for (int i = 0; i < asynclist.size(); i++) {
+    }
+    /*for (int i = 0; i < asynclist.size(); i++) {
         std::cout << "Iterating " << i << std::endl;
         asynclist[i].get();
-    }
+    }*/
 }
 template void enqueue_async<int>(slist<int>&);

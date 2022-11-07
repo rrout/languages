@@ -30,10 +30,4 @@ private:
 };
 
 // Explicit template instantiation
-//template class slist_node<int>;
-//template class slist_node<slist_node>;
-//template class slist<int>;
-//template class slist_node<std::string>;
-//template class slist<std::string>;
-#include "slist.cc"
 #endif //__SLIST_H__

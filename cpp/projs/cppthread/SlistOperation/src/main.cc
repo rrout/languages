@@ -4,7 +4,6 @@
 
 
 int main() {
-  int a = 10;
   slist<int> list;
   list.print();
   list.insert(1);

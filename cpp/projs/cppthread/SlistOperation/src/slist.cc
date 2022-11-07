@@ -146,3 +146,8 @@ void slist<T>::print() {
   std::cout << "data : " << ss.str() << std::endl;
   std::cout << "\nNumber of items : " << counts << std::endl;
 }
+
+// Explicit template instantiation
+// https://bytefreaks.net/programming-2/c/c-undefined-reference-to-templated-class-function
+template class slist_node<int>;
+template class slist<int>;

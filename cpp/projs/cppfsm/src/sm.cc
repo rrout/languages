@@ -23,15 +23,15 @@ bool fsm::setCurrentStateEvent(enum state s, enum event ev) {
 }
 void fsm::printStateTable() {
 	for(int i = 0; i < S_MAX; i++) {
-    for(int j = 0; j < E_MAX; j++) {
-      std::cout <<  "[ " << i << " ][ " << j << " ] = " <<
-        stable[i][j].currState << " -> " <<
-        stable[i][j].exitState << " (entry:): " <<
-        stable[i][j].entryFunc.target_type().name() << " (exit:): " <<
-        stable[i][j].exitFunc.target_type().name() << " (Valid:): " <<
-        stable[i][j].valid << std::endl;
-    }
- }
+		for(int j = 0; j < E_MAX; j++) {
+			std::cout <<  "[ " << i << " ][ " << j << " ] = " <<
+				stable[i][j].currState << " -> " <<
+				stable[i][j].exitState << " (entry:): " <<
+				stable[i][j].entryFunc.target_type().name() << " (exit:): " <<
+				stable[i][j].exitFunc.target_type().name() << " (Valid:): " <<
+				stable[i][j].valid << std::endl;
+		}
+	}
 }
 
 bool fsm::dispatchEvent(enum event ev) {

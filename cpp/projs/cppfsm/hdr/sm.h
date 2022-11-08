@@ -133,9 +133,4 @@ public:
  	bool actS5E5entry(enum state s, enum event ev);
 	bool actS5E5exit(enum state s, enum event ev);
 };
-
-class verify {
-public:
-  int i = 10;
-};
 #endif //__SM_H__

@@ -20,13 +20,8 @@ int main() {
 	t.sqFunc(t,20);
 	test<std::string> s;
 	s.sqFunc(s, "rashmiiiiii");
-	int x[][2] = {
-			{1, 2},
-			{3,4},
-		};
-	
+	//FSM Object
 	fsm fm;
 	fm.printStateTable();
 	fm.fsmTest();
-	verify v;
 }

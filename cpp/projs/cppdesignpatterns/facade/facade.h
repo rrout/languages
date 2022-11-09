@@ -1,13 +1,66 @@
 #include "hdr.h"
+enum class ItemState {
+	INIT,
+	INVENTORY_SEARCH,
+	INVENTORY_CHECK_VALID_ITEM,
+	INVENTORY_CHECK_ITEM_EXPARY,
+	INVENTORY_CHECK_ITEM_COVER,
+	INVENTORY_ITEM_SELECTED,
+
+	VERIFICATION_RECIEVED,
+	VERIFICATION_CHECKING,
+	VERIFICATION_SENT_LAB,
+	VERIFICATION_RECVED_LAB,
+	VERIFICATION_VERIFIED,
+
+	PREPARE_RECIEVED,
+	PREPARE_PREPARED,
+	PREPARE_WRAPPED,
+
+	DISPATCH_RECIEVED,
+	DISPATCH_CONTACT_DELEVERY_AGENT,
+	DISPATCH_WAITING_PICKUP,
+	DISPATCH_CONTACT_HAND_OVER,
+	DISPATCH_DISPATCHED,
+	
+	COMPLETE
+};
+
+class itemDeleverySystem {
+public:
+	void moveStageNext(int &state) {
+		state = state++;
+	}
+private:
+	int _state;
+};
+
 class inventoryCheck {
 public:
 	void submit() {
 		_state = Init;
+		exec();
 	}
-	bool checkStatusDone() {
+	bool exec() {
+		std::future<bool> ft = std::async (&inventoryCheck::execStage, this);
+		bool rs = ft.get();
+		return true;
+	}
+	bool execStage() {
+		std::cout << __PRETTY_FUNCTION__ << "----------------------------------------------------------------------------------------------------" << std::endl;
+		while (_state != Complete) {
+			_op = InProgress;
+			moveStageNext();
+			_op = Done;
+		}
+		return true;
+	}
+	void moveStageNext() {
 		int s = static_cast<int>(_state);
 		s++;
-		_state = static_cast<enum state>(s);
+		_state = static_cast<enum state>(s);	
+	}
+	bool checkStatusDone() {
 		if (_state == Complete)
 			return true;
 		return false;
@@ -16,7 +69,15 @@ private:
 	enum state {
 		Init, SearchInv, CheckValidItem, CheckExpary, CheckPackageCover,Complete
 	};
+	enum operation {
+		InProgress, Done
+	};
+	std::vector<ItemState> stateList = 	{
+											ItemState::INIT, ItemState::INVENTORY_SEARCH, ItemState::INVENTORY_CHECK_VALID_ITEM,
+											ItemState::INVENTORY_CHECK_ITEM_EXPARY, ItemState::INVENTORY_CHECK_ITEM_COVER, ItemState::INVENTORY_ITEM_SELECTED
+										};
 	enum state _state;
+	enum operation _op;
 };
 
 class itemVerification {

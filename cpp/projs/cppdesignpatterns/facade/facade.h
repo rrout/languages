@@ -22,7 +22,7 @@ enum class ItemState {
 	DISPATCH_WAITING_PICKUP,
 	DISPATCH_CONTACT_HAND_OVER,
 	DISPATCH_DISPATCHED,
-	
+
 	COMPLETE
 };
 enum class operation {
@@ -50,98 +50,146 @@ public:
 		return true;
 	}
 	bool execStage() {
-		std::cout << __PRETTY_FUNCTION__ << "----------------------------------------------------------------------------------------------------" << std::endl;
 		while (stateList[_state] != ItemState::COMPLETE) {
+			std::cout << __PRETTY_FUNCTION__ << "State : " << _state << std::endl;
 			_op = operation::InProgress;
 			moveStageNext(_state);
 			_op = operation::Done;
 		}
 		return true;
 	}
-	
+
 	bool checkStatusDone() {
 		if (stateList[_state] == ItemState::COMPLETE)
 			return true;
 		return false;
 	}
-	
+
 private:
-	enum state {
-		Init, SearchInv, CheckValidItem, CheckExpary, CheckPackageCover,Complete
-	};
-	enum operation {
-		InProgress, Done
-	};
-	std::vector<ItemState> stateList = 	{
-											ItemState::INIT, ItemState::INVENTORY_SEARCH, ItemState::INVENTORY_CHECK_VALID_ITEM,
-											ItemState::INVENTORY_CHECK_ITEM_EXPARY, ItemState::INVENTORY_CHECK_ITEM_COVER, ItemState::INVENTORY_ITEM_SELECTED,
-											ItemState::COMPLETE
-										};
+	std::vector<ItemState> stateList = {
+			ItemState::INIT,
+			ItemState::INVENTORY_SEARCH,
+			ItemState::INVENTORY_CHECK_VALID_ITEM,
+			ItemState::INVENTORY_CHECK_ITEM_EXPARY,
+			ItemState::INVENTORY_CHECK_ITEM_COVER,
+			ItemState::INVENTORY_ITEM_SELECTED,
+			ItemState::COMPLETE
+		};
 	int _state;
 	operation _op;
 };
 
-class itemVerification {
+class itemVerification : public itemDeleverySystem {
 public:
 	void submit() {
-        _state = Init;
+		_state = static_cast<int>(ItemState::INIT);
+		exec();
     }
-    bool checkStatusDone() {
-		int s = static_cast<int>(_state);
-        s++;
-        _state = static_cast<enum state>(s);
-		std::cout << __PRETTY_FUNCTION__ << "State : " << _state << std::endl;
-        if (_state == Complete)
-            return true;
-        return false;
+	bool exec() {
+		std::future<bool> ft = std::async (&itemVerification::execStage, this);
+		return true;
+	}
+	bool execStage() {
+		while (stateList[_state] != ItemState::COMPLETE) {
+			std::cout << __PRETTY_FUNCTION__ << "State : " << _state << std::endl;
+			_op = operation::InProgress;
+			moveStageNext(_state);
+			_op = operation::Done;
+		}
+		return true;
+	}
+	bool checkStatusDone() {
+		if (stateList[_state] == ItemState::COMPLETE)
+			return true;
+		return false;
 	}
 private:
-	enum state {
-        Init, ItemRecieved, InitiateVerify, SendLab, ReciveFromLab, Complete
-    };
-	enum state _state;
+	std::vector<ItemState> stateList = {
+		ItemState::INIT,
+		ItemState::VERIFICATION_RECIEVED,
+		ItemState::VERIFICATION_CHECKING,
+		ItemState::VERIFICATION_SENT_LAB,
+		ItemState::VERIFICATION_RECVED_LAB,
+		ItemState::VERIFICATION_VERIFIED,
+		ItemState::COMPLETE
+	};
+	int _state;
+	operation _op;
 };
 
-class itemPrepare {
+class itemPrepare : public itemDeleverySystem {
 public:
     void submit() {
-        _state = Init;
+		_state = static_cast<int>(ItemState::INIT);
+		exec();
     }
-    bool checkStatusDone() {
-		int s = static_cast<int>(_state);
-        s++;
-        _state = static_cast<enum state>(s);
-		 std::cout << __PRETTY_FUNCTION__ << "State : " << _state << std::endl;
-        if (_state == Complete)
-            return true;
-        return false;
+	bool exec() {
+		std::future<bool> ft = std::async (&itemPrepare::execStage, this);
+		return true;
+	}
+	bool execStage() {
+		while (stateList[_state] != ItemState::COMPLETE) {
+			std::cout << __PRETTY_FUNCTION__ << "State : " << _state << std::endl;
+			_op = operation::InProgress;
+			moveStageNext(_state);
+			_op = operation::Done;
+		}
+		return true;
+	}
+	bool checkStatusDone() {
+		if (stateList[_state] == ItemState::COMPLETE)
+			return true;
+		return false;
 	}
 private:
-enum state {
-        Init, ItemRecieved, InitPrepare, WrapComplete, Complete
-    };
-    enum state _state;
+	std::vector<ItemState> stateList = {
+		ItemState::INIT,
+		ItemState::PREPARE_RECIEVED,
+		ItemState::PREPARE_PREPARED,
+		ItemState::PREPARE_WRAPPED,
+		ItemState::COMPLETE
+	};
+	int _state;
+	operation _op;
 };
 
-class itemDispatch {
+class itemDispatch : public itemDeleverySystem {
 public:
     void submit() {
-        _state = Init;
+		_state = static_cast<int>(ItemState::INIT);
+		exec();
     }
-    bool checkStatusDone() {
-		 int s = static_cast<int>(_state);
-        s++;
-        _state = static_cast<enum state>(s);
-		 std::cout << __PRETTY_FUNCTION__ << "State : " << _state << std::endl;
-        if (_state == Complete)
-            return true;
-        return false;
+	bool exec() {
+		std::future<bool> ft = std::async (&itemDispatch::execStage, this);
+		return true;
+	}
+	bool execStage() {
+		while (stateList[_state] != ItemState::COMPLETE) {
+			std::cout << __PRETTY_FUNCTION__ << "State : " << _state << std::endl;
+			_op = operation::InProgress;
+			moveStageNext(_state);
+			_op = operation::Done;
+		}
+		return true;
+	}
+	bool checkStatusDone() {
+
+		if (stateList[_state] == ItemState::COMPLETE)
+			return true;
+		return false;
 	}
 private:
-enum state {
-        Init, ItemRecieved, ContactingCouriorAgency, WaitingPickUp, HandedOver, Complete
-    };
-    enum state _state;
+	std::vector<ItemState> stateList = {
+		ItemState::INIT,
+		ItemState::DISPATCH_RECIEVED,
+		ItemState::DISPATCH_CONTACT_DELEVERY_AGENT,
+		ItemState::DISPATCH_WAITING_PICKUP,
+		ItemState::DISPATCH_CONTACT_HAND_OVER,
+		ItemState::DISPATCH_DISPATCHED,
+		ItemState::COMPLETE
+	};
+	int _state;
+	operation _op;
 };
 
 class ItemFacade {
@@ -153,7 +201,7 @@ public:
         _state = Init;
     }
     bool checkStatusDone() {
-		std::cout << __PRETTY_FUNCTION__ << "State : " << _state << std::endl;
+		std::cout << __PRETTY_FUNCTION__ << "Facade Current State : " << _state << std::endl;
 		if (_state == Init) {
 			int s = static_cast<int>(_state);
 			s++;

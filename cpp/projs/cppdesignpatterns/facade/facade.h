@@ -25,46 +25,46 @@ enum class ItemState {
 	
 	COMPLETE
 };
+enum class operation {
+	InProgress, Done
+};
 
 class itemDeleverySystem {
 public:
 	void moveStageNext(int &state) {
-		state = state++;
+		state++;
 	}
 private:
 	int _state;
 };
 
-class inventoryCheck {
+class inventoryCheck : public itemDeleverySystem {
 public:
 	void submit() {
-		_state = Init;
+		_state = static_cast<int>(ItemState::INIT);
 		exec();
 	}
 	bool exec() {
 		std::future<bool> ft = std::async (&inventoryCheck::execStage, this);
-		bool rs = ft.get();
+		//bool rs = ft.get();
 		return true;
 	}
 	bool execStage() {
 		std::cout << __PRETTY_FUNCTION__ << "----------------------------------------------------------------------------------------------------" << std::endl;
-		while (_state != Complete) {
-			_op = InProgress;
-			moveStageNext();
-			_op = Done;
+		while (stateList[_state] != ItemState::COMPLETE) {
+			_op = operation::InProgress;
+			moveStageNext(_state);
+			_op = operation::Done;
 		}
 		return true;
 	}
-	void moveStageNext() {
-		int s = static_cast<int>(_state);
-		s++;
-		_state = static_cast<enum state>(s);	
-	}
+	
 	bool checkStatusDone() {
-		if (_state == Complete)
+		if (stateList[_state] == ItemState::COMPLETE)
 			return true;
 		return false;
 	}
+	
 private:
 	enum state {
 		Init, SearchInv, CheckValidItem, CheckExpary, CheckPackageCover,Complete
@@ -74,10 +74,11 @@ private:
 	};
 	std::vector<ItemState> stateList = 	{
 											ItemState::INIT, ItemState::INVENTORY_SEARCH, ItemState::INVENTORY_CHECK_VALID_ITEM,
-											ItemState::INVENTORY_CHECK_ITEM_EXPARY, ItemState::INVENTORY_CHECK_ITEM_COVER, ItemState::INVENTORY_ITEM_SELECTED
+											ItemState::INVENTORY_CHECK_ITEM_EXPARY, ItemState::INVENTORY_CHECK_ITEM_COVER, ItemState::INVENTORY_ITEM_SELECTED,
+											ItemState::COMPLETE
 										};
-	enum state _state;
-	enum operation _op;
+	int _state;
+	operation _op;
 };
 
 class itemVerification {

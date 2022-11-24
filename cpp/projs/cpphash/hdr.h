@@ -1,0 +1,21 @@
+#ifndef __HDR_H__
+#define __HDR_H__
+#include <stdio.h>
+#include <iostream>
+#include <vector>
+#include <thread>
+#include <functional>
+#include <mutex>
+#include <chrono>
+#include <future>
+#include <sstream>
+#include <cstdlib>
+#include <ctime>
+#include <map>
+#include <list>
+#include <stack>
+#include <queue>
+#include <set>
+#include <array>
+#endif //__HDR_H__
+

@@ -1,0 +1,81 @@
+SHELL := /bin/sh
+
+# following so could define executable name on command line
+# using the '-D' parameter
+#ifndef $(NAME)
+    NAME := hellomake
+#endif
+
+# use ':=' so macros only evaluated once
+
+
+MAKE    :=  /usr/bin/make
+CC      :=  /usr/bin/gcc
+
+CFLAGS  := -g -Wall -Wextra -pedantic
+LFLAGS  :=
+
+ODIR    := obj
+IDIR    := ../include
+LIBS    :=
+LIBPATH := ../lib
+
+DEPS    := $(wildcard $(IDIR)/*.h)
+SRCS    := $(wildcard *.c)
+OBJS    := $(SRCS:.c=.o)
+
+.PHONY: all
+all: $(NAME) $(OBJS)
+
+$(ODIR)/%.o: %.c $(DEPS)
+    $(CC) $(CFLAGS) -c -o $@ $< -I$(DEPS)
+
+$(NAME): $(OBJS)
+    $(CC) $(LFLAGS) -o $@ $^ -L$(LIBPATH) -l$(LIBS)
+
+.PHONY: clean
+clean:
+    rm -f $(ODIR)/*.o
+    rm -f $(NAME)
+
+
+however, in your proposed project,
+not every source file needs every header file
+so should use either gcc or sed to generate the dependency files
+then use makefile rules similar to the following,
+which may need a little 'tweaking' for your project
+because the include files are not in the same directory
+as the source files:
+
+DEP := $(SRCS:.c=.d)
+
+#
+#create dependency files
+#
+%.d: %.c
+    #
+    # ========= START $< TO $@ =========
+    $(CC) -M $(CPPFLAGS) $< > $@.$$$$;                      \
+    sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@;     \
+    rm -f $@.$$$$
+    # ========= END $< TO $@ =========
+
+#
+# compile the .c files into .o files using the compiler flags
+#
+%.o: %.c %.d
+     #
+     # ========= START $< TO $@ =========
+     $(CC) $(CCFLAGS) -c $< -o $@ -I$(IDIR)
+     # ========= END $< TO $@ =========
+     #
+
+# include the contents of all the .d files
+# note: the .d files contain:
+# <filename>.o:<filename>.c plus all the dependencies for that .c file
+# I.E. the #include'd header files
+# wrap with ifneg... so will not rebuild *.d files when goal is 'clean'
+#
+ifneq "$(MAKECMDGOALS)" "clean"
+-include $(DEP)
+endif

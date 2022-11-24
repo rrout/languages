@@ -98,9 +98,9 @@ void pktdispatch::publisherRegisteryPoller() {
 		std::vector<std::string> request = convertZmqMsgToVector(message);
 		printRequest(request);
 		if (validation::validateReqRespMsg(request)) {
-			cout << "Request is not a valid req" << std::endl;
-
-		}
+		} else {
+            cout << "Request is not a valid req" << std::endl;
+        }
 		socket.send(message);
     }
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Exit" << std::endl;

@@ -4,6 +4,10 @@
 #ifndef __CONSTANTS_H__
 #define __CONSTANTS_H__
 
+#define MSG_TYPE_REQ        0
+#define MSG_TYPE_RESP       1
+#define MSG_TYPE_TOPIC      2
+
 // [ REQUEST  ]  [ MYPID ] [ MYNAME] [ RESPONCE ] [ NUM RESPONCE SRTING ] [ RESPONCE SRTING ]
 #define REQRESP_MSG_FIELD_REQ            0
 #define REQRESP_MSG_FIELD_PID            1
@@ -54,11 +58,11 @@ inline bool isRspTypeValid(std::string respType)  {
 }
 
 // [ TOPIC ]  [ PUBLISHER PID ] [ PUBLISHER NAME] [ ADITIONAL INFO ] [ TOPIC CONTENT ]
-#define TOPIC_MSG_FIELd_TOPIC            0
-#define TOPIC_MSG_FIELd_PID              1
-#define TOPIC_MSG_FIELd_PNAME            2
-#define TOPIC_MSG_FIELd_EXTINFO          3
-#define TOPIC_MSG_FIELd_CONTENT          4
+#define TOPIC_MSG_FIELD_TOPIC            0
+#define TOPIC_MSG_FIELD_PID              1
+#define TOPIC_MSG_FIELD_PNAME            2
+#define TOPIC_MSG_FIELD_EXTINFO          3
+#define TOPIC_MSG_FIELD_CONTENT          4
 
 
 #define PD_TOPIC_0_TOPIC_A              "TOPIC-A"

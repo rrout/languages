@@ -1,5 +1,5 @@
 #include "hdr.h"
-#include "constants.h"
+#include "pktmessage.h"
 
 #ifndef __PKTDISPATCH_H__
 #define __PKTDISPATCH_H__
@@ -26,14 +26,11 @@ class pktdispatch {
 	public:
 		pktdispatch();
 		~pktdispatch();
-		std::vector<std::string> convertZmqMsgToVector(zmqpp::message &msg);
-		zmqpp::message convertVectorToZmqMsg(std::vector<std::string> &msg);
-		void printRequest(std::vector<std::string> &msg);
-		void printReply(std::vector<std::string> &msg);
 		void publishDataPoller();
 		void publisherRegisteryPoller();
 		void subscriberRegisteryPoller();
 		void dispatchEngiene();
+		bool processRqust(pktmessage &req, pktmessage &res);
 		void startProcessing();
 };
 

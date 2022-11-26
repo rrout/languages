@@ -20,7 +20,7 @@
 #include <stdexcept>
 #include <exception>
 #include <condition_variable>
-
+#include <utility>      // std::pair, std::make_pair
 using namespace std;
 
 #include <zmqpp/zmqpp.hpp>

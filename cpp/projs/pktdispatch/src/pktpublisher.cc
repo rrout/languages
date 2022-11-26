@@ -17,6 +17,54 @@ pktpublisher::~pktpublisher() {
 	std::cout << __PRETTY_FUNCTION__ << "Desstructing" << std::endl;
 }
 
+
+void pktpublisher::addEntry(std::string name) {
+	if (!entryExist(name)) {
+		std::pair<std::string, std::string> entry(name, "");
+		pubEntryList.push_back(entry);
+	}
+}
+
+void pktpublisher::delEntry(std::string name) {
+	std::pair<std::string, std::string> p;
+	if (entryExist(name)) {
+		for (auto &e : pubEntryList) {
+			if (e.first == name) {
+				p = e;
+			}
+		}
+		//auto p = getPublisherEntry(name);
+		pubEntryList.remove(p);
+	}
+}
+
+bool pktpublisher::entryExist(std::string name) {
+	for (auto &e : pubEntryList) {
+		if (e.first == name) {
+			return true;
+		}
+	}
+	return false;
+}
+
+std::pair<std::string, std::string> &pktpublisher::getPublisherEntry(std::string name) {
+	for (auto &e : pubEntryList) {
+		if (e.first == name) {
+			return e;
+		}
+	}
+	//return nullptr;
+}
+
+void pktpublisher::printEntries() {
+	std::cout << "Entries" << std::endl <<
+		"-----------------------------" << std::endl;
+	for (auto &e : pubEntryList) {
+		std::cout << e.first << "  |  " <<
+			e.second << std::endl;
+	}
+}
+
 std::string pktpublisher::getTopic() {
 	return _topic;
 }
@@ -85,6 +133,7 @@ bool pktpublisher::print() {
 		" | Publish Count : " << getPublishCount() <<
 		" | Send Count : " << getPublishSendCount() <<
 		std::endl;
+	printEntries();
 	return true;
 }
 

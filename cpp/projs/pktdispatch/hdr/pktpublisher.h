@@ -17,6 +17,12 @@ class pktpublisher {
 		pktpublisher() = delete;
 		pktpublisher(std::string topic);
 		~pktpublisher();
+		std::list<std::pair<std::string, std::string>> pubEntryList;
+		void addEntry(std::string name);
+		void delEntry(std::string name);
+		bool entryExist(std::string name);
+		std::pair<std::string, std::string> &getPublisherEntry(std::string name);
+		void printEntries();
 		int piblishorCount;
 		std::string getTopic();
 		void publishCount();

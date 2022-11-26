@@ -122,6 +122,7 @@ bool pktdispatch::processRqust(pktmessage &req, pktmessage &res) {
 		res.fillResp(RESP_TYPE_BAD_REQ, msg);
 		ret = false;
 	} else {
+		pktdispatchconfig *inst = pktdispatchconfig::getInstance();
 		if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_PUB_ENDPOINT) {
 			std::string pubEndpoint = "1.2.3.4:5";
 			res.fillResp(RESP_TYPE_OK, pubEndpoint);
@@ -129,13 +130,13 @@ bool pktdispatch::processRqust(pktmessage &req, pktmessage &res) {
 			std::string subEndpoint = "10.20.30.40:50";
 			res.fillResp(RESP_TYPE_OK, subEndpoint);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_ENCODE_AUTH_KEY) {
-
+			res.fillResp(RESP_TYPE_BAD_REQ);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_DECODE_AUTH_KEY) {
-
+			res.fillResp(RESP_TYPE_BAD_REQ);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_HEART_BEAT) {
-
+			res.fillResp(RESP_TYPE_BAD_REQ);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_TOPIC_LIST) {
-
+			res.fillResp(RESP_TYPE_BAD_REQ);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_RESPONCE) {
 			res.fillResp(RESP_TYPE_BAD_REQ);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_REGISTER_PUBLISHER) {
@@ -146,6 +147,7 @@ bool pktdispatch::processRqust(pktmessage &req, pktmessage &res) {
 				pubName << " ] [ " << pubId << " ] for [ " <<
 				topic << " ]" <<
 				std::endl;
+			inst->cratePublisher(topic, pubName);
 			res.fillResp(RESP_TYPE_OK);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_REGISTER_SUBSCRIBER) {
 			std::string subName = req.getmsgfield(REQRESP_MSG_FIELD_NAME);
@@ -155,11 +157,10 @@ bool pktdispatch::processRqust(pktmessage &req, pktmessage &res) {
 				subName << " ] [ " << subId << " ] for [ " <<
 				topic << " ]" <<
 				std::endl;
-			pktdispatchconfig *inst = pktdispatchconfig::getInstance();
 			inst->addSubscriber(subName, topic);
 			res.fillResp(RESP_TYPE_OK);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_MY_REGESTRATION) {
-
+			res.fillResp(RESP_TYPE_BAD_REQ);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_NONE) {
 			std::vector<std::string> msg;
 			msg.push_back("Request REQ_TYPE_NONE is unprocessable");

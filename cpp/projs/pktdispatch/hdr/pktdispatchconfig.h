@@ -29,11 +29,11 @@ class pktdispatchconfig {
 		std::mutex p_mutex;
 		std::condition_variable p_cond;
 		std::map<std::string, pktpublisher *> publisher;
-		pktConfigStatus_t cratePublisher(std::string topic);
-		pktConfigStatus_t deletePublisher(std::string topic);
+		pktConfigStatus_t cratePublisher(std::string topic, std::string name);
+		pktConfigStatus_t deletePublisher(std::string topic, std::string name);
+		void setPublisher(std::string topic, std::string name);
+		void removePublisher(std::string topic, std::string name);
 		pktpublisher * getPublisher(std::string topic);
-		void setPublisher(std::string topic);
-		void removePublisher(std::string topic);
 		bool prntPublisherList();
 		bool isPublishPending();
 		void startPublishMgmt();

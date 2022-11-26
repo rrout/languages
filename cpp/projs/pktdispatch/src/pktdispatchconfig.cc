@@ -58,59 +58,66 @@ void pktdispatchconfig::configure(std::string &config) {
     }
 }
 
-pktConfigStatus_t pktdispatchconfig::cratePublisher(std::string topic) {
+pktConfigStatus_t pktdispatchconfig::cratePublisher(std::string topic, std::string name) {
 	if (topic.empty()== true) {
         std::cout << __PRETTY_FUNCTION__ << "Invalid param" << std::endl;
         throw std::invalid_argument("Invalid param");
         return STATUS_FAIL;
     }
-	setPublisher(topic);
+	setPublisher(topic, name);
 	return STATUS_OK;
 }
 
-pktConfigStatus_t pktdispatchconfig::deletePublisher(std::string topic) {
-	if (topic.empty()== true) {
+pktConfigStatus_t pktdispatchconfig::deletePublisher(std::string topic, std::string name) {
+if (topic.empty()== true) {
         std::cout << __PRETTY_FUNCTION__ << "Invalid param" << std::endl;
         throw std::invalid_argument("Invalid param");
         return STATUS_FAIL;
     }
-	removePublisher(topic);
+	removePublisher(topic, name);
 	return STATUS_OK;
 }
 
-pktpublisher * pktdispatchconfig::getPublisher(std::string topic) {
-	std::lock_guard mutex(p_mutex);
-	if(publisher.contains(topic)) {
-		return publisher[topic];
-	}
-	return nullptr;
-}
-
-void pktdispatchconfig::setPublisher(std::string topic) {
+void pktdispatchconfig::setPublisher(std::string topic, std::string name) {
 	std::lock_guard mutex(p_mutex);
 	if (publisher.find(topic) == publisher.end()) {
         std::cout << __PRETTY_FUNCTION__ << "Create publisher for topic : " << topic << std::endl;
         publisher[topic] = new pktpublisher(topic);
+		publisher[topic]->addEntry(name);
     } else {
         std::cout << __PRETTY_FUNCTION__ << "Pblisher Topic " << topic << " Alreay exists" <<  std::endl;
-        publisher[topic]->piblishorCount++;
+		if (!publisher[topic]->entryExist(name)) {
+			publisher[topic]->addEntry(name);
+			publisher[topic]->piblishorCount++;
+		}
     }
 }
 
-void pktdispatchconfig::removePublisher(std::string topic) {
+void pktdispatchconfig::removePublisher(std::string topic, std::string name) {
 	std::lock_guard mutex(p_mutex);
 	if (publisher.contains(topic)) {
-        if (publisher[topic]->piblishorCount > 0) {
-            publisher[topic]->piblishorCount--;
-        }
+		if (publisher[topic]->entryExist(name)) {
+			publisher[topic]->delEntry(name);
+			if (publisher[topic]->piblishorCount > 0) {
+				publisher[topic]->piblishorCount--;
+			}
 
-		if (publisher[topic]->piblishorCount == 0) {
-			delete publisher[topic];
-			publisher.erase(topic);
+			if (publisher[topic]->piblishorCount == 0) {
+				delete publisher[topic];
+				publisher.erase(topic);
+			}
 		}
     } else {
         std::cout << __PRETTY_FUNCTION__ << "Pblisher Topic " << topic << "doesn't exist" <<  std::endl;
     }
+}
+
+pktpublisher * pktdispatchconfig::getPublisher(std::string topic) {
+    std::lock_guard mutex(p_mutex);
+    if(publisher.contains(topic)) {
+        return publisher[topic];
+    }
+    return nullptr;
 }
 
 bool pktdispatchconfig::prntPublisherList() {

@@ -21,8 +21,15 @@
 #include <exception>
 #include <condition_variable>
 #include <utility>      // std::pair, std::make_pair
+#include<cstdlib>
+#include <iomanip>
+#include <numeric>
+#include <chrono>
+#include <stdatomic.h>
 using namespace std;
+using namespace std::placeholders;
 
+#include <unistd.h>
 #include <zmqpp/zmqpp.hpp>
 #include <zmqpp/socket.hpp>
 #include <zmqpp/socket_types.hpp>

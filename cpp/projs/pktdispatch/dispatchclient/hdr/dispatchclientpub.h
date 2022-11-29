@@ -3,6 +3,8 @@
 class dispatchclientpub {
 	private:
 		std::string _topic;
+		std::string _endpoint;
+		zmqpp::socket *_conection =  nullptr;
 		int _publishCount = 0;
 		int _buffCount;
 		int _maxBuffCount;
@@ -14,10 +16,12 @@ class dispatchclientpub {
 	public:
 		dispatchclientpub() = delete;
 		dispatchclientpub(std::string topic);
+		dispatchclientpub(std::string topic, std::string endpoint);
 		~dispatchclientpub();
 		void print();
 		int getBuffCount();
 		int publishCount() const;
+		bool registr(std::string endpoint, zmqpp::socket *connection);
 		bool registered() const;
 		void registration(bool status);
 		bool publish(std::string topic, std::string msg);

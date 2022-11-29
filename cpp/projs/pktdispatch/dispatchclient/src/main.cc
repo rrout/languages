@@ -13,7 +13,8 @@
 Callback c = std::bind(cbk, _1, _2);
 int main() {
 	std::vector<std::string> msge = {"aaaa"};
-	dispatchclient client("CLIENT:1", "tcp://localhost:4234");
+	//dispatchclient client("CLIENT:1", "tcp://localhost:4234");
+	dispatchclient client("CLIENT:1", "tcp://localhost:4243");
 	client.publishRegister("AAAAA");
 	client.print();
 	client.publish("BBBBBBBBBB", "Message");
@@ -24,7 +25,7 @@ int main() {
 	//std::this_thread::sleep_for(std::chrono::milliseconds(20000));
 	client.print();
 
-	dispatchclient cl("tcp://localhost:");
+	dispatchclient cl("tcp://localhost:4243");
 	cl.print();
 	while(1) {
 		client.publish("AAAAA", "Message");

@@ -31,6 +31,18 @@ int dispatchclientpub::getBuffCount() {
 int dispatchclientpub::publishCount() const {
 	return _publishCount;
 }
+bool dispatchclientpub::registr(std::string endpoint, zmqpp::socket *connection) {
+	//TODO more validations
+	if (!registered()) {
+		_endpoint = endpoint;
+		_conection = connection;
+	} else {
+		std::cout << __PRETTY_FUNCTION__ << "Alredy Connected" << std::endl;
+		return false;
+	}
+	_registered = true;
+	return true;
+}
 bool dispatchclientpub::registered() const {
 	return _registered;
 }
@@ -67,6 +79,7 @@ bool dispatchclientpub::publish(std::string topic, std::vector<std::string> msg)
 bool dispatchclientpub::send(std::vector<std::string> &msg) {
 	//TODO
 	std::cout << __PRETTY_FUNCTION__ << " REAL SEND " << std::endl;
+
 	_publishCount++;
 	return true;
 }

@@ -29,7 +29,7 @@ LIBDIR :=
 LIBS := -lpthread -lrt -lzmq -lzmqpp
 # (7)Target file, excutable file.
 # main
-TARGET ?= main
+TARGET ?= dispatchServer
 # (8)Source files(code), to be compiled
 # Find source files we want to compile
 # *expression must around by single quotos
@@ -48,7 +48,7 @@ DEPS := $(OBJS:.o=.d)
 # (11)Include files directory path
 # Every folder in ./src find include files to be passed via clang
 # ./include
-INC_DIRS := ./hdr
+INC_DIRS := ./hdr ../hdr
 # (12)Include files add together a prefix, clang make sense that -I flag
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 # (13)Make Makefiles output Dependency files

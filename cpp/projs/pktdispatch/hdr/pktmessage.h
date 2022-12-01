@@ -3,7 +3,7 @@
 #define __PKTMESSAGE_H__
 class pktmessage {
     private:
-		int _myPid;
+		std::string _myPid;
         std::string _myname;
         int _msgType;
         std::vector<std::string> _msgBody;
@@ -21,9 +21,21 @@ class pktmessage {
         void type(int type);
         std::string name();
         void name(std::string name);
+		int8_t getMsgType();
+		std::string getMsgTypeStr();
+		void printPretty();
 		std::string getmsgfield(int field);
+		std::string getPart(int idx);
+		std::string getReqPart();
+		std::string getRespPart();
+		std::string getNamePart();
+		std::string getIdIPart();
+		int getContentSize();
+		std::string getContent(int index);
+
         void clear();
         bool isclean();
+		void clean();
         bool valid();
         void print();
 
@@ -103,12 +115,13 @@ inline bool isRespTypeValid(std::string respType)  {
             (respType == RESP_TYPE_NONE));
 }
 
-// [ TOPIC ]  [ PUBLISHER PID ] [ PUBLISHER NAME] [ ADITIONAL INFO ] [ TOPIC CONTENT ]
+// [ TOPIC ]  [ PUBLISHER PID ] [ PUBLISHER NAME] [ ADITIONAL INFO ] [ NUM STRINGS ] [ TOPIC CONTENT ]
 #define TOPIC_MSG_FIELD_TOPIC            0
 #define TOPIC_MSG_FIELD_PID              1
 #define TOPIC_MSG_FIELD_PNAME            2
 #define TOPIC_MSG_FIELD_EXTINFO          3
-#define TOPIC_MSG_FIELD_CONTENT          4
+#define TOPIC_MSG_FIELD_PARTCOUNT		 4
+#define TOPIC_MSG_FIELD_CONTENT          5
 
 
 #define PD_TOPIC_0_TOPIC_A              "TOPIC-A"

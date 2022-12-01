@@ -50,6 +50,8 @@ void pktdispatch::publishDataPoller() {
 				buf.push_back(message.get(i));
 			}
 			p->publish(buf);
+		} else {
+			std::cout << __PRETTY_FUNCTION__ << "No Publisher found : " << topic << " Discarding...." <<  std::endl;
 		}
 	}
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Exit" << std::endl;
@@ -124,10 +126,10 @@ bool pktdispatch::processRqust(pktmessage &req, pktmessage &res) {
 	} else {
 		pktdispatchconfig *inst = pktdispatchconfig::getInstance();
 		if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_PUB_ENDPOINT) {
-			std::string pubEndpoint = "1.2.3.4:5";
+			std::string pubEndpoint = "tcp://ras-srv-1.tcn3ucaalpoungcdz0optfllyb.xx.internal.cloudapp.net:4242";
 			res.fillResp(RESP_TYPE_OK, pubEndpoint);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_SUB_ENDPOINT) {
-			std::string subEndpoint = "10.20.30.40:50";
+			std::string subEndpoint = subRegEndpoint;
 			res.fillResp(RESP_TYPE_OK, subEndpoint);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_ENCODE_AUTH_KEY) {
 			res.fillResp(RESP_TYPE_BAD_REQ);

@@ -171,6 +171,7 @@ bool pktpublisher::processBuffer() {
 	pktdispatchconfig *inst = pktdispatchconfig::getInstance();
 	std::vector<std::string> buf;
 	if (!inst->isSubscriberPresent(_topic)) {
+		std::cout << __PRETTY_FUNCTION__ << "Subscriber not present : Topic : " << _topic << std::endl;
 		return false;
 	}
 	while (isBuffPresent()) {

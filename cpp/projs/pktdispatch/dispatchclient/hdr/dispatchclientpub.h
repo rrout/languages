@@ -2,9 +2,10 @@
 
 class dispatchclientpub {
 	private:
+		std::string _name;
 		std::string _topic;
 		std::string _endpoint;
-		zmqpp::socket *_conection =  nullptr;
+		zmqpp::socket *_con =  nullptr;
 		int _publishCount = 0;
 		int _buffCount;
 		int _maxBuffCount;

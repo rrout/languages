@@ -187,6 +187,65 @@ bool dispatchclient::connectProcessing(std::string endpoint) {
 	}
 	return true;
 }
+std::string dispatchclient::getPubEndpoint(std::string topic) {
+	pktmessage req(_name);
+	pktmessage resp;
+	// Send REQ_TYPE_GET_PUB_ENDPOINT
+    req.clear();
+    resp.clear();
+    req.fillReq(REQ_TYPE_GET_PUB_ENDPOINT);
+    sendRequest(req, resp);
+    // PROCESS Responce
+    if (resp.getReqPart() == REQ_TYPE_RESPONCE &&
+            (resp.getRespPart() != RESP_TYPE_OK ||
+             resp.getRespPart() != RESP_TYPE_BAD_REQ)) {
+		if (!resp.getContent(0).empty()) {
+			return resp.getContent(0);
+		}
+    }
+	return {};
+}
+std::string dispatchclient::getSubEndpoint(std::string topic) {
+	pktmessage req(_name);
+    pktmessage resp;
+    // Send REQ_TYPE_GET_SUB_ENDPOINT
+    req.clear();
+    resp.clear();
+    req.fillReq(REQ_TYPE_GET_SUB_ENDPOINT);
+    sendRequest(req, resp);
+    // PROCESS Responce
+    if (resp.getReqPart() == REQ_TYPE_RESPONCE &&
+            (resp.getRespPart() != RESP_TYPE_OK ||
+             resp.getRespPart() != RESP_TYPE_BAD_REQ)) {
+        if (!resp.getContent(0).empty()) {
+            return resp.getContent(0);
+        }
+    }
+    //return std::string();
+    return {};
+}
+bool dispatchclient::registerTopicWithServer(std::string topic) {
+	pktmessage req(_name);
+	pktmessage resp;
+	//TODO check the local topic list
+	//
+	//referesh list if not found locally
+	//
+	//Again check if found
+	//
+	// Send REQ_TYPE_REGISTER_PUBLISHER
+    req.clear();
+    resp.clear();
+    req.fillReq(REQ_TYPE_REGISTER_PUBLISHER, topic);
+    sendRequest(req, resp);
+    // PROCESS Responce
+    if (resp.getReqPart() == REQ_TYPE_RESPONCE &&
+            (resp.getRespPart() != RESP_TYPE_OK ||
+             resp.getRespPart() != RESP_TYPE_BAD_REQ)) {
+		return true;
+    }
+	return false;
+}
 bool dispatchclient::isConnected() {
 	return _connected;
 }
@@ -267,10 +326,53 @@ bool dispatchclient::publishRegister(std::string topic) {
 	std::unique_lock<std::mutex> lck(wait_mtx);
 	wait_cond.wait_for(lck,std::chrono::seconds(10), std::bind(&dispatchclient::isConnected, this));
 	std::cout << __PRETTY_FUNCTION__ << "================================" << std::endl;
+	std::string pubEndpoint;
 	if (isConnected()) {
+		if (!publisher.contains(topic)) {
+			pubEndpoint = getPubEndpoint(topic);
+			std::cout << __PRETTY_FUNCTION__ << pubEndpoint << std::endl;
+			if(pubEndpoint.empty()) {
+				std::cout << __PRETTY_FUNCTION__ <<
+				"No able to resolve publisher connection" <<
+				" Topic : " <<
+				topic <<
+				std::endl;
+				return false;
+			}
+
+			if (registerTopicWithServer(topic) == false) {
+				std::cout << __PRETTY_FUNCTION__ <<
+					"Topic registration failed with server : " <<
+					topic <<
+					std::endl;
+				return false;
+			}
+
+			//zmqpp::context context;
+			//Use the Context of our own which is single context
+			//for all client wide ZMQ socketes
+			//We must own the publisher
+			zmqpp::socket_type socktype = zmqpp::socket_type::push;
+			zmqpp::socket *con = new zmqpp::socket(_context, socktype);
+			if (con) {
+				con->connect(pubEndpoint);
+
+				std::lock_guard<std::mutex> lock(p_lock);
+				publisher[topic] = new dispatchclientpub(topic);
+				publisher[topic]->registr(_endpoint, con);
+			} else {
+				std::cout << __PRETTY_FUNCTION__ <<
+					"Alloc fail " <<
+					std::endl;
+			}
+		} else {
+			std::cout << __PRETTY_FUNCTION__ <<
+				"Publisher exists  " <<
+				topic <<
+				std::endl;
+			return true;
+		}
 		//TODO
-		std::lock_guard<std::mutex> lock(p_lock);
-		publisher[topic] = new dispatchclientpub(topic);
 	} else {
 		std::cout << __PRETTY_FUNCTION__ <<
 			"Client is not connected" <<

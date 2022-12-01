@@ -1,5 +1,6 @@
 #include "hdr.h"
 #include "dispatchclientpub.h"
+#include "pktmessage.h"
 
 
 dispatchclientpub::dispatchclientpub(std::string topic) {
@@ -31,11 +32,11 @@ int dispatchclientpub::getBuffCount() {
 int dispatchclientpub::publishCount() const {
 	return _publishCount;
 }
-bool dispatchclientpub::registr(std::string endpoint, zmqpp::socket *connection) {
+bool dispatchclientpub::registr(std::string endpoint, zmqpp::socket *con) {
 	//TODO more validations
 	if (!registered()) {
 		_endpoint = endpoint;
-		_conection = connection;
+		_con = con;
 	} else {
 		std::cout << __PRETTY_FUNCTION__ << "Alredy Connected" << std::endl;
 		return false;
@@ -77,10 +78,28 @@ bool dispatchclientpub::publish(std::string topic, std::vector<std::string> msg)
 	return true;
 }
 bool dispatchclientpub::send(std::vector<std::string> &msg) {
-	//TODO
-	std::cout << __PRETTY_FUNCTION__ << " REAL SEND " << std::endl;
-
-	_publishCount++;
+	if (msg.empty()) {
+		std::cout << __PRETTY_FUNCTION__ <<
+			"Invalid message to send" <<
+			" DISCARDING SEND" <<
+			std::endl;
+		return true;
+	}
+	pktmessage message(_name);
+	// Convert it to TOPIC message
+	message.fillTopic(_topic, "", msg);
+	//Validate TOPIC message.
+	message.print();
+	if (_con) {
+		zmqpp::message req;
+		message.compose(req);
+		_con->send(req);
+		_publishCount++;
+		std::cout << __PRETTY_FUNCTION__ << " REAL SEND " << std::endl;
+    } else {
+		std::cout << __PRETTY_FUNCTION__ << " REAL SEND FAIL" << std::endl;
+		return false;
+	}
 	return true;
 }
 bool dispatchclientpub::processSend() {
@@ -92,6 +111,7 @@ bool dispatchclientpub::processSend() {
 		std::endl;
 	while (_buffer.empty() == false) {
 		int sendIdx = _buffer.size()-1;
+		//TODO handle send() return status
 		send(_buffer[sendIdx]);
 		_buffer.erase( _buffer.begin() + sendIdx );
 	}

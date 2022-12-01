@@ -23,10 +23,10 @@ int main() {
 	client.subscribeRegister("AAAAA");
 	client.subscribe("AAAAA", c);
 	//std::this_thread::sleep_for(std::chrono::milliseconds(20000));
-	client.print();
+	//client.print();
 
-	dispatchclient cl("tcp://localhost:4243");
-	cl.print();
+	//dispatchclient cl("tcp://localhost:4243");
+	//cl.print();
 	while(1) {
 		client.publish("AAAAA", "Message");
 		client.publish("AAAAA", "Message");

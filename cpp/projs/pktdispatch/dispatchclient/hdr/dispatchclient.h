@@ -25,6 +25,9 @@ class dispatchclient {
 		bool priodicNegotiation();
 		bool connectProcessing(std::string endpoint);
 		bool sendRequest(pktmessage &req, pktmessage &res);
+		std::string getPubEndpoint(std::string topic);
+		std::string getSubEndpoint(std::string topic);
+		bool registerTopicWithServer(std::string topic);
 		bool isConnected();
 		bool isReady();
 		bool isReady(std::string topic);

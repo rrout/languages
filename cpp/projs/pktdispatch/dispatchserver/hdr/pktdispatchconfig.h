@@ -2,6 +2,7 @@
 #include "pktdispatch.h"
 #include "pktpublisher.h"
 #include "pktsubscriber.h"
+#include "pktdispatchendpoint.h"
 
 #ifndef __PKTDISPATCHCONFIG_H__
 #define __PKTDISPATCHCONFIG_H__
@@ -10,6 +11,7 @@ class pktdispatchconfig {
 			bool isStarted = false;
 			static pktdispatchconfig *instance;
 			pktdispatch *dispatcher = nullptr;
+			pktdispatchendpoint *endpoints = nullptr;
 	protected:
 		// The Singleton's constructor should always be private to prevent
 		// direct construction calls with the `new` operator.

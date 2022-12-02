@@ -76,6 +76,8 @@ class pktmessage {
 
 #define REQ_TYPE_GET_PUB_ENDPOINT		"REQ_TYPE_GET_PUB_ENDPOINT"
 #define REQ_TYPE_GET_SUB_ENDPOINT		"REQ_TYPE_GET_SUB_ENDPOINT"
+#define REQ_TYPE_GET_ADV_ENDPOINT       "REQ_TYPE_GET_ADV_ENDPOINT"
+#define REQ_TYPE_GET_VERSION			"REQ_TYPE_GET_VERSION"
 #define REQ_TYPE_GET_ENCODE_AUTH_KEY	"REQ_TYPE_GET_ENCODE_AUTH_KEY"
 #define REQ_TYPE_GET_DECODE_AUTH_KEY	"REQ_TYPE_GET_DECODE_AUTH_KEY"
 #define REQ_TYPE_GET_HEART_BEAT			"REQ_TYPE_GET_HEART_BEAT"
@@ -84,10 +86,13 @@ class pktmessage {
 #define REQ_TYPE_REGISTER_PUBLISHER		"REQ_TYPE_REGISTER_PUBLISHER"
 #define REQ_TYPE_REGISTER_SUBSCRIBER	"REQ_TYPE_REGISTER_SUBSCRIBER"
 #define REQ_TYPE_GET_MY_REGESTRATION	"REQ_TYPE_GET_MY_REGESTRATION"
+#define REQ_TYPE_CHECK_VERSION			"REQ_TYPE_CHECK_VERSION"
 #define REQ_TYPE_NONE					"REQ_TYPE_NONE"
 inline bool isReqTypeValid(std::string reqType)  {
     return ((reqType == REQ_TYPE_GET_PUB_ENDPOINT) ||
             (reqType == REQ_TYPE_GET_SUB_ENDPOINT) ||
+			(reqType == REQ_TYPE_GET_ADV_ENDPOINT) ||
+			(reqType == REQ_TYPE_GET_VERSION) ||
             (reqType == REQ_TYPE_GET_ENCODE_AUTH_KEY) ||
             (reqType == REQ_TYPE_GET_DECODE_AUTH_KEY) ||
             (reqType == REQ_TYPE_GET_HEART_BEAT) ||
@@ -96,6 +101,7 @@ inline bool isReqTypeValid(std::string reqType)  {
             (reqType == REQ_TYPE_REGISTER_PUBLISHER) ||
             (reqType == REQ_TYPE_REGISTER_SUBSCRIBER) ||
             (reqType == REQ_TYPE_GET_MY_REGESTRATION) ||
+			(reqType == REQ_TYPE_CHECK_VERSION) ||
             (reqType == REQ_TYPE_NONE));
 }
 

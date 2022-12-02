@@ -22,6 +22,11 @@ pktdispatchconfig::~pktdispatchconfig() {
 pktdispatchconfig * pktdispatchconfig::createInstance() {
 	if (!instance) {
 		instance = new pktdispatchconfig();
+		instance->endpoints = pktdispatchendpoint::getInstance();
+		//instance->endpoints->setMgmtEp("tcp://*:4243", SERVER_RESP);
+		//instance->endpoints->setAdvEp("tcp://*:4244", SERVER_PUBLISH);
+		//instance->endpoints->updatePubEp(PD_TOPIC_0_TOPIC_A, "tcp://*:4242", SERVER_PULL);
+		//instance->endpoints->setSubEp(PD_TOPIC_0_TOPIC_A, "tcp://*:4245", SERVER_PUBLISH);
 		std::cout << __PRETTY_FUNCTION__ << ":" << "Creating instance" << std::endl;
 		return instance;
 	}

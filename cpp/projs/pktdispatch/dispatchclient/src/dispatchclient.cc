@@ -49,7 +49,7 @@ bool dispatchclient::connectNegotiation(int8_t retry) {
 			break;
 		}
 		bool verChk = false;
-		std::string ver, pubEndpoint, err;
+		std::string ver, advEndpoint, err;
 		std::vector<std::string> topiclist;
 		pktmessage req(_name);
 		pktmessage resp;
@@ -57,7 +57,7 @@ bool dispatchclient::connectNegotiation(int8_t retry) {
 		// send VERSION REQ
 		req.clear();
 		resp.clear();
-		req.fillReq(REQ_TYPE_GET_SUB_ENDPOINT);
+		req.fillReq(REQ_TYPE_GET_VERSION);
 		sendRequest(req, resp);
 		// PROCESS Version req
 		if (resp.getReqPart() == REQ_TYPE_RESPONCE &&
@@ -72,7 +72,7 @@ bool dispatchclient::connectNegotiation(int8_t retry) {
 		// Send MY_VERSION CHECK
 		req.clear();
 		resp.clear();
-		req.fillReq(REQ_TYPE_GET_SUB_ENDPOINT);
+		req.fillReq(REQ_TYPE_CHECK_VERSION);
 		sendRequest(req, resp);
 		// Process
 		if (resp.getReqPart() == REQ_TYPE_RESPONCE &&
@@ -84,16 +84,16 @@ bool dispatchclient::connectNegotiation(int8_t retry) {
             break;
         }
 
-		// Send REQ_TYPE_GET_PUB_ENDPOINT
+		// Send REQ_TYPE_GET_ADV_ENDPOINT
 		req.clear();
 		resp.clear();
-		req.fillReq(REQ_TYPE_GET_PUB_ENDPOINT);
+		req.fillReq(REQ_TYPE_GET_ADV_ENDPOINT);
 		sendRequest(req, resp);
 		// Process
 		if (resp.getReqPart() == REQ_TYPE_RESPONCE &&
                 (resp.getRespPart() != RESP_TYPE_OK ||
                  resp.getRespPart() != RESP_TYPE_BAD_REQ)) {
-            pubEndpoint = resp.getContent(0);
+            advEndpoint = resp.getContent(0);
 			result = true;
         } else {
             break;
@@ -102,7 +102,7 @@ bool dispatchclient::connectNegotiation(int8_t retry) {
 		// Get Topic List
 		req.clear();
 		resp.clear();
-		req.fillReq(REQ_TYPE_GET_SUB_ENDPOINT);
+		req.fillReq(REQ_TYPE_GET_TOPIC_LIST);
 		sendRequest(req, resp);
 		// Process
 		if (resp.getReqPart() == REQ_TYPE_RESPONCE &&
@@ -119,13 +119,14 @@ bool dispatchclient::connectNegotiation(int8_t retry) {
 
 		std::cout << "version : " << ver << std::endl;
 		std::cout << "version Chk : " << verChk << std::endl;
-		std::cout << "pubEndpoint : " << pubEndpoint << std::endl;
+		std::cout << "advEndpoint : " << advEndpoint << std::endl;
 		std::cout << "TOPIC LIST" << std::endl;
 		for (auto &a : topiclist) {
 			std::cout << a << std::endl;
 		}
 		if (result == true) {
 			std::cout << __PRETTY_FUNCTION__ << "Connection ESTABLISHED" << std::endl;
+			_advendpoint = advEndpoint;
 			break;
 		}
 		count++;
@@ -187,6 +188,28 @@ bool dispatchclient::connectProcessing(std::string endpoint) {
 	}
 	return true;
 }
+void dispatchclient::advProcessing() {
+	while(1) {
+		if (isAddEndpointConnected()) {
+			if (!isAddChennelReady()) {
+				std::cout << __PRETTY_FUNCTION__ << "Connecting to" <<
+					"ADV endpoint : " << _advendpoint << std::endl;
+				//std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+				zmqpp::socket_type socktype = zmqpp::socket_type::subscribe;
+				_advcon = new zmqpp::socket(_context, socktype);
+				_advcon->connect(_advendpoint);
+				_advcon->subscribe(_name);
+			} else {
+				zmqpp::message reply;
+				_advcon->receive(reply);
+				pktmessage resp(reply);
+				resp.print();
+			}
+		} else {
+			std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+		}
+	}
+}
 std::string dispatchclient::getPubEndpoint(std::string topic) {
 	pktmessage req(_name);
 	pktmessage resp;
@@ -224,7 +247,7 @@ std::string dispatchclient::getSubEndpoint(std::string topic) {
     //return std::string();
     return {};
 }
-bool dispatchclient::registerTopicWithServer(std::string topic) {
+bool dispatchclient::registerTopicWithServer(client_role_t role, std::string topic) {
 	pktmessage req(_name);
 	pktmessage resp;
 	//TODO check the local topic list
@@ -234,9 +257,18 @@ bool dispatchclient::registerTopicWithServer(std::string topic) {
 	//Again check if found
 	//
 	// Send REQ_TYPE_REGISTER_PUBLISHER
+	std::string request;
+	if (role == DISPATCH_CLIENT_ROLE_PUBLISHER) {
+		request = REQ_TYPE_REGISTER_PUBLISHER;
+	} else if (role == DISPATCH_CLIENT_ROLE_SUBSCRIBER) {
+		request = REQ_TYPE_REGISTER_SUBSCRIBER;
+	} else {
+		std::cout << __PRETTY_FUNCTION__ << "Unknown role" << std::endl;
+		return false;
+	}
     req.clear();
     resp.clear();
-    req.fillReq(REQ_TYPE_REGISTER_PUBLISHER, topic);
+    req.fillReq(request, topic);
     sendRequest(req, resp);
     // PROCESS Responce
     if (resp.getReqPart() == REQ_TYPE_RESPONCE &&
@@ -245,6 +277,12 @@ bool dispatchclient::registerTopicWithServer(std::string topic) {
 		return true;
     }
 	return false;
+}
+bool dispatchclient::isAddEndpointConnected() {
+	return (isConnected() && _advendpoint.empty() == false);
+}
+bool dispatchclient::isAddChennelReady() {
+	return (isAddEndpointConnected() && _advcon != nullptr);
 }
 bool dispatchclient::isConnected() {
 	return _connected;
@@ -299,6 +337,7 @@ bool dispatchclient::start() {
 	//std::make_unique<std::future<void>*>(new auto(std::async(std::launch::async, &dispatchclient::publishProcessing, this))).reset();
 	threadready++;
 	std::thread(&dispatchclient::connectProcessing, this, _endpoint).detach();
+	std::thread(&dispatchclient::advProcessing, this).detach();
 	threadready++;
 	std::thread(&dispatchclient::publishProcessing, this).detach();
 
@@ -311,7 +350,15 @@ bool dispatchclient::start() {
 	std::cout << __PRETTY_FUNCTION__ << "All thread started......." << std::endl;
 	return true;
 }
+void dispatchclient::connectionCkeckWait(int8_t timeout) {
+	std::cout << __PRETTY_FUNCTION__ << "================*****=============" << std::endl;
+	std::condition_variable wait_cond;
+	std::mutex wait_mtx;
+	std::unique_lock<std::mutex> lck(wait_mtx);
+	wait_cond.wait_for(lck,std::chrono::seconds(timeout), std::bind(&dispatchclient::isConnected, this));
+	std::cout << __PRETTY_FUNCTION__ << "================================" << std::endl;
 
+}
 bool dispatchclient::publishRegister(std::string topic) {
 	if (publisher.contains(topic)) {
 		std::cout << __PRETTY_FUNCTION__ <<
@@ -320,12 +367,7 @@ bool dispatchclient::publishRegister(std::string topic) {
 			std::endl;
 		return true;
 	}
-	std::cout << __PRETTY_FUNCTION__ << "================*****=============" << std::endl;
-	std::condition_variable wait_cond;
-	std::mutex wait_mtx;
-	std::unique_lock<std::mutex> lck(wait_mtx);
-	wait_cond.wait_for(lck,std::chrono::seconds(10), std::bind(&dispatchclient::isConnected, this));
-	std::cout << __PRETTY_FUNCTION__ << "================================" << std::endl;
+	connectionCkeckWait(10);
 	std::string pubEndpoint;
 	if (isConnected()) {
 		if (!publisher.contains(topic)) {
@@ -340,7 +382,7 @@ bool dispatchclient::publishRegister(std::string topic) {
 				return false;
 			}
 
-			if (registerTopicWithServer(topic) == false) {
+			if (registerTopicWithServer(DISPATCH_CLIENT_ROLE_PUBLISHER, topic) == false) {
 				std::cout << __PRETTY_FUNCTION__ <<
 					"Topic registration failed with server : " <<
 					topic <<
@@ -462,9 +504,52 @@ bool dispatchclient::subscribeRegister(std::string topic) {
             std::endl;
         return true;
     }
+	connectionCkeckWait(10);
+	std::string subEndpoint;	
     if (isConnected()) {
-        std::lock_guard<std::mutex> lock(p_lock);
-        subscriber[topic] = new dispatchclientsub(topic);
+		if (!subscriber.contains(topic)) {
+			subEndpoint = getSubEndpoint(topic);
+			std::cout << __PRETTY_FUNCTION__ << subEndpoint << std::endl; 
+			if(subEndpoint.empty()) {
+				std::cout << __PRETTY_FUNCTION__ <<
+					"No able to resolve subscriber connection" <<
+					" Topic : " <<
+					topic <<
+					std::endl;
+				return false;
+			}
+			if (registerTopicWithServer(DISPATCH_CLIENT_ROLE_SUBSCRIBER, topic) == false) {
+				std::cout << __PRETTY_FUNCTION__ <<
+					"Topic registration failed with server : " <<
+					topic <<
+					std::endl;
+				return false;
+			}
+			//zmqpp::context context;
+			//Use the Context of our own which is single context
+			//for all client wide ZMQ socketes
+			//We must own the subscriber
+			zmqpp::socket_type socktype = zmqpp::socket_type::subscribe;
+			zmqpp::socket *con = new zmqpp::socket(_context, socktype);
+			if (con) {
+				con->connect(subEndpoint);
+
+				std::lock_guard<std::mutex> lock(p_lock);
+				subscriber[topic] = new dispatchclientsub(topic);
+				subscriber[topic]->registr(subEndpoint, con);
+			} else {
+				std::cout << __PRETTY_FUNCTION__ <<
+					"Alloc fail " <<
+					std::endl;
+				return false;
+			}
+		} else {
+			std::cout << __PRETTY_FUNCTION__ <<
+				"Subscriber exists  " <<
+				topic <<
+				std::endl;
+			return true;
+		}
     } else {
         std::cout << __PRETTY_FUNCTION__ << "Client is not connected" <<
             std::endl;

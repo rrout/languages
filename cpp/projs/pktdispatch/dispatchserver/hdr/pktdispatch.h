@@ -15,10 +15,10 @@ class pktdispatch {
 	private:
 		zmqpp::endpoint_t pubDataPollerEndpoint = "tcp://*:4242";
 		zmqpp::socket_type pubDataPollertype = zmqpp::socket_type::pull;
-		zmqpp::endpoint_t pubRegEndpoint = "tcp://*:4243";
-		zmqpp::socket_type pubRegtype = zmqpp::socket_type::reply;
-		zmqpp::endpoint_t subRegEndpoint = "tcp://*:4244";
-		zmqpp::socket_type subRegtype = zmqpp::socket_type::reply;
+		zmqpp::endpoint_t mgmtendpoint = "tcp://*:4243";
+		zmqpp::socket_type mgmtendpointType = zmqpp::socket_type::reply;
+		zmqpp::endpoint_t infoPubEndpoint = "tcp://*:4244";
+		zmqpp::socket_type infoPubEndpointType = zmqpp::socket_type::publish;
 		zmqpp::endpoint_t dispatchEndpoint = "tcp://*:4245";
 		zmqpp::socket_type dispatchtype = zmqpp::socket_type::publish;
 		zmqpp::context context;
@@ -27,8 +27,8 @@ class pktdispatch {
 		pktdispatch();
 		~pktdispatch();
 		void publishDataPoller();
-		void publisherRegisteryPoller();
-		void subscriberRegisteryPoller();
+		void dispatchMgmtPoller();
+		void infoPublishPoller();
 		void dispatchEngiene();
 		bool processRqust(pktmessage &req, pktmessage &res);
 		void startProcessing();

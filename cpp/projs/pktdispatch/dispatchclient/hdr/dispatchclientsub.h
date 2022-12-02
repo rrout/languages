@@ -5,6 +5,8 @@ typedef std:: function<void(std::string, std::vector<std::string>)> Callback;
 class dispatchclientsub {
 	private:
 		std::string _topic;
+		std::string _endpoint;
+		zmqpp::socket *_con = nullptr;
 		bool _registered = false;
 		int _recvCount = 0;
 		std::mutex _lock;
@@ -19,6 +21,7 @@ class dispatchclientsub {
 		~dispatchclientsub();
 		void print();
 		int getBuffCount() const;
+		bool registr(std::string endpoint, zmqpp::socket *connection);
 		bool registered() const;
 		void registration(bool status);
 		int getRecvCount() const;
@@ -28,5 +31,6 @@ class dispatchclientsub {
 		void processCallbacksNotify();
 		bool dispatchCallback(std::vector<std::string> msg);
 		void start();
+		void stop();
 };
 #endif //__DISPATCHCLIENTSUB_H__

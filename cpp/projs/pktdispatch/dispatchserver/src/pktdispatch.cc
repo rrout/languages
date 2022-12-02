@@ -57,10 +57,10 @@ void pktdispatch::publishDataPoller() {
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Exit" << std::endl;
 }
 
-void pktdispatch::publisherRegisteryPoller() {
-	zmqpp::socket socket (context, pubRegtype);
-    cout << "Binding to " << pubRegEndpoint << "..." << endl;
-    socket.bind(pubRegEndpoint);
+void pktdispatch::dispatchMgmtPoller() {
+	zmqpp::socket socket (context, mgmtendpointType);
+    cout << "Binding to " << mgmtendpoint << "..." << endl;
+    socket.bind(mgmtendpoint);
     while(1) {
         // receive the message
         cout << "Receiving publishing client request..." << endl;
@@ -84,16 +84,23 @@ void pktdispatch::publisherRegisteryPoller() {
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Exit" << std::endl;
 }
 
-void pktdispatch::subscriberRegisteryPoller() {
-	zmqpp::socket socket (context, subRegtype);
-	cout << "Binding to " << subRegEndpoint << "..." << endl;
-	socket.bind(subRegEndpoint);
+void pktdispatch::infoPublishPoller() {
+	zmqpp::socket socket (context, infoPubEndpointType);
+	cout << "Binding to " << infoPubEndpoint << "..." << endl;
+	socket.bind(infoPubEndpoint);
 	while(1) {
 		// receive the message
-		cout << "Receiving message..." << endl;
+		std::cout << __PRETTY_FUNCTION__ << __LINE__ <<
+			"Receiving message..." << endl;
 		zmqpp::message message;
 		// decompose the message
-		socket.receive(message);
+		//socket.receive(message);
+		pktmessage req("SERVER");
+		std::string a = ";;;;;;;;;;;;;;;;;;;;;;";
+		req.fillTopic("CLIENT:1", TOPIC_CONTENT_PLANE_TEXT, a);
+		req.compose(message);
+		socket.send(message);
+		std::this_thread::sleep_for(std::chrono::milliseconds(60000));
 	}
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Exit" << std::endl;
 }
@@ -129,14 +136,18 @@ bool pktdispatch::processRqust(pktmessage &req, pktmessage &res) {
 			std::string pubEndpoint = "tcp://ras-srv-1.tcn3ucaalpoungcdz0optfllyb.xx.internal.cloudapp.net:4242";
 			res.fillResp(RESP_TYPE_OK, pubEndpoint);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_SUB_ENDPOINT) {
-			std::string subEndpoint = subRegEndpoint;
+			std::string subEndpoint = "tcp://ras-srv-1.tcn3ucaalpoungcdz0optfllyb.xx.internal.cloudapp.net:4245";
 			res.fillResp(RESP_TYPE_OK, subEndpoint);
+		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_ADV_ENDPOINT) {
+			std::string advEndpoint = "tcp://ras-srv-1.tcn3ucaalpoungcdz0optfllyb.xx.internal.cloudapp.net:4244";
+			res.fillResp(RESP_TYPE_OK, advEndpoint);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_ENCODE_AUTH_KEY) {
 			res.fillResp(RESP_TYPE_BAD_REQ);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_DECODE_AUTH_KEY) {
 			res.fillResp(RESP_TYPE_BAD_REQ);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_HEART_BEAT) {
-			res.fillResp(RESP_TYPE_BAD_REQ);
+			std::string str = "Heart Beat OK";
+			res.fillResp(RESP_TYPE_OK, str);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_GET_TOPIC_LIST) {
 			res.fillResp(RESP_TYPE_BAD_REQ);
 		} else if (req.getmsgfield(REQRESP_MSG_FIELD_REQ) == REQ_TYPE_RESPONCE) {
@@ -183,11 +194,11 @@ void pktdispatch::startProcessing() {
 	//auto pubDataPollerThread = std::async(std::launch::async, &pktdispatch::publishDataPoller, this);
 	std::make_unique<std::future<void>*>(new auto(std::async(std::launch::async, &pktdispatch::publishDataPoller, this))).reset();
 	std::cout << __PRETTY_FUNCTION__ << ":" << "pubRegPollerThread" << std::endl;
-    //auto pubRegPollerThread = std::async(std::launch::async, &pktdispatch::publisherRegisteryPoller, this);
-	std::make_unique<std::future<void>*>(new auto(std::async(std::launch::async, &pktdispatch::publisherRegisteryPoller, this))).reset();
+    //auto pubRegPollerThread = std::async(std::launch::async, &pktdispatch::dispatchMgmtPoller, this);
+	std::make_unique<std::future<void>*>(new auto(std::async(std::launch::async, &pktdispatch::dispatchMgmtPoller, this))).reset();
 	std::cout << __PRETTY_FUNCTION__ << ":" << "subRegThread" << std::endl;
-	//auto subRegThread = std::async(std::launch::async, &pktdispatch::subscriberRegisteryPoller, this);
-	std::make_unique<std::future<void>*>(new auto(std::async(std::launch::async, &pktdispatch::subscriberRegisteryPoller, this))).reset();
+	//auto subRegThread = std::async(std::launch::async, &pktdispatch::infoPublishPoller, this);
+	std::make_unique<std::future<void>*>(new auto(std::async(std::launch::async, &pktdispatch::infoPublishPoller, this))).reset();
 	std::cout << __PRETTY_FUNCTION__ << ":" << "dispatchThread" << std::endl;
 	//auto dispatchThread = std::async(std::launch::async, &pktdispatch::dispatchEngiene, this);
 	std::make_unique<std::future<void>*>(new auto(std::async(std::launch::async, &pktdispatch::dispatchEngiene, this))).reset();

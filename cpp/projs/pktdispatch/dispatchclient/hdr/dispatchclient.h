@@ -3,15 +3,24 @@
 #include "dispatchclientpub.h"
 #include "dispatchclientsub.h"
 
+typedef enum {
+	DISPATCH_CLIENT_ROLE_PUBLISHER,
+	DISPATCH_CLIENT_ROLE_SUBSCRIBER
+}client_role_t;
+
 class dispatchclient {
 	private:
 		std::string _name;
+		std::string _version;
+		std::string _serverVersion;
 		std::string _endpoint;
 		zmqpp::context _context;
 		zmqpp::socket_type _socktype;
 		zmqpp::socket *_connnection =  nullptr;
 		int8_t _connRetry = 0;
 		bool _connected = false;
+		std::string _advendpoint;
+		zmqpp::socket *_advcon =  nullptr;
 		bool _reqdestroy =  false;
 		std::atomic<uint8_t> threadready;
 		std::mutex p_lock;
@@ -27,7 +36,11 @@ class dispatchclient {
 		bool sendRequest(pktmessage &req, pktmessage &res);
 		std::string getPubEndpoint(std::string topic);
 		std::string getSubEndpoint(std::string topic);
-		bool registerTopicWithServer(std::string topic);
+		bool registerTopicWithServer(client_role_t role, std::string topic);
+		bool isAddEndpointConnected();
+		bool isAddChennelReady();
+		void advProcessing();
+		void connectionCkeckWait(int8_t timeout);
 		bool isConnected();
 		bool isReady();
 		bool isReady(std::string topic);

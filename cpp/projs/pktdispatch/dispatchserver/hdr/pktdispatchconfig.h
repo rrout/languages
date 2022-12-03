@@ -11,7 +11,7 @@ class pktdispatchconfig {
 			bool isStarted = false;
 			static pktdispatchconfig *instance;
 			pktdispatch *dispatcher = nullptr;
-			pktdispatchendpoint *endpoints = nullptr;
+			//pktdispatchendpoint *endpoints = nullptr;
 	protected:
 		// The Singleton's constructor should always be private to prevent
 		// direct construction calls with the `new` operator.
@@ -26,6 +26,8 @@ class pktdispatchconfig {
 		static pktdispatchconfig * getInstance();
 		void parse(std::string &configfile);
 		void configure(std::string &config);
+
+		pktdispatchendpoint endpoints;
 
 		// Topic - Publisher map
 		std::mutex p_mutex;
@@ -58,6 +60,5 @@ class pktdispatchconfig {
 		void cmdLineProcess();
 		bool start();
 };
-
 
 #endif //__PKTDISPATCHCONFIG_H__

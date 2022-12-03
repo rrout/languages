@@ -60,8 +60,8 @@ CPP_FLAGS ?= $(INC_FLAGS) -MMD -MP
 # (14)Link: Generate executable file from object file
 # make your target depend on the objects files:
 ${BUILD_DIR}/${TARGET} : $(OBJS)
-	@echo LINKING..... $(CC) -o $@ $(OBJS) $(LIBS)
-	@$(CXX) $(OBJS) $(LIBS) -o $@
+	@echo LINKING..... $(CC) -O0 -o $@ $(OBJS) $(LIBS)
+	@$(CXX) $(OBJS) $(LIBS) -O0 -o $@
 	@echo BUILDING..... ${BUILD_DIR}/${TARGET} Complete.....
 
 # (15)Compile: Generate object files from source files
@@ -71,8 +71,8 @@ ${BUILD_DIR}/${TARGET} : $(OBJS)
 # C++ Sources
 $(BUILD_DIR)/%.cc.o: $(SRC_DIRS)/%.cc
 	$(MKDIR_P) $(dir $@)
-	@echo COMPILING... $(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c "$<" -o "$@"
-	@$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c $< -o $@
+	@echo COMPILING... $(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c "$<" -O0 -o "$@"
+	@$(CXX) $(CPP_FLAGS) $(CXX_FLAGS) -c $< -O0 -o $@
 
 #(16)Delete dependence files, object files, and the target file
 .PHONY: all clean

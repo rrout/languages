@@ -1,4 +1,6 @@
 #include "hdr.h"
+#include "constants.h"
+#include "endpoint.h"
 #include "pktdispatchconfig.h"
 pktdispatchconfig * pktdispatchconfig::instance = nullptr;
 
@@ -22,11 +24,11 @@ pktdispatchconfig::~pktdispatchconfig() {
 pktdispatchconfig * pktdispatchconfig::createInstance() {
 	if (!instance) {
 		instance = new pktdispatchconfig();
-		instance->endpoints = pktdispatchendpoint::getInstance();
-		//instance->endpoints->setMgmtEp("tcp://*:4243", SERVER_RESP);
-		//instance->endpoints->setAdvEp("tcp://*:4244", SERVER_PUBLISH);
-		//instance->endpoints->updatePubEp(PD_TOPIC_0_TOPIC_A, "tcp://*:4242", SERVER_PULL);
-		//instance->endpoints->setSubEp(PD_TOPIC_0_TOPIC_A, "tcp://*:4245", SERVER_PUBLISH);
+		instance->endpoints.addMgmtEndpoint(MGMT_ENDPOINT);
+		instance->endpoints.addAdvEndpoint(ADV_ENDPOINT);
+		instance->endpoints.addPubEndpoint(PUB_ENDPOINT);
+		instance->endpoints.addSubEndpoint(SUB_ENDPOINT);
+		instance->endpoints.print();
 		std::cout << __PRETTY_FUNCTION__ << ":" << "Creating instance" << std::endl;
 		return instance;
 	}
@@ -88,6 +90,10 @@ void pktdispatchconfig::setPublisher(std::string topic, std::string name) {
 	if (publisher.find(topic) == publisher.end()) {
         std::cout << __PRETTY_FUNCTION__ << "Create publisher for topic : " << topic << std::endl;
         publisher[topic] = new pktpublisher(topic);
+		//TODO
+		pktdispatchconfig *inst = pktdispatchconfig::getInstance();
+		inst->endpoints.registerTopic(topic);
+		inst->endpoints.print();
 		publisher[topic]->addEntry(name);
     } else {
         std::cout << __PRETTY_FUNCTION__ << "Pblisher Topic " << topic << " Alreay exists" <<  std::endl;
@@ -350,11 +356,18 @@ bool pktdispatchconfig::printSubscriberlist() {
 void pktdispatchconfig::cmdLineProcess() {
 	while(1) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(20000));
-		std::cout << __PRETTY_FUNCTION__ <<
+		std::cout << __PRETTY_FUNCTION__ << std::endl <<
 			"------------------------------------------" << std::endl;
+		std::cout << "----------------- ENDPOINTS -----------------" << std::endl;
+		endpoints.print();
+		std::cout << "---------------------------------------------" << std::endl;
+		std::cout << "----------------- PUBLISHER -----------------" << std::endl;
 		prntPublisherList();
+		std::cout << "---------------------------------------------" << std::endl;
+		std::cout << "----------------- SUBSCRIBER -----------------" << std::endl;
 		printSubscriberlist();
-		std::cout << __PRETTY_FUNCTION__ <<
+		std::cout << "---------------------------------------------" << std::endl;
+		std::cout << __PRETTY_FUNCTION__ << std::endl <<
 			"------------------------------------------" << std::endl;
 	}
 }

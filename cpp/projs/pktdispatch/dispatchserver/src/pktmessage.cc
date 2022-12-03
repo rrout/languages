@@ -238,6 +238,16 @@ void pktmessage::copy(zmqpp::message &msg) {
 	setMsgType();
     _constructed = true;
 }
+void pktmessage::copyback(std::vector<std::string> &msg) {
+    for (auto &a : _msgBody) {
+        msg.push_back(a);
+    }
+}
+void pktmessage::copyback(zmqpp::message &msg) {
+    for (auto &a : _msgBody) {
+        msg.add(a);
+    }
+}
 bool pktmessage::validReqRespMsg(std::vector<std::string> &reqRespMsg) {
 	if ((reqRespMsg.size() == 0)) {
 		return false;

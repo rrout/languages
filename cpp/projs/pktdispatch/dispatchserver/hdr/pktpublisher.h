@@ -1,4 +1,5 @@
 #include "hdr.h"
+#include "pktdispatchendpoint.h"
 
 #ifndef __PKTPUBLISHER_H__
 #define __PKTPUBLISHER_H__

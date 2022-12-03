@@ -1,293 +1,315 @@
 #include "hdr.h"
+#include "constants.h"
+#include "endpoint.h"
 #include "pktdispatchendpoint.h"
 
-endPoint::endPoint(std::string endpoint, endPointType_t type) {
-	std::cout << __PRETTY_FUNCTION__ << "Constructing object" << std::endl;
-	_endpointType = type;
-	_socktype = getsockettype(type);
-    _connection = new zmqpp::socket(_context, _socktype);
-	if (isSocketCatagoryServer()) {
-		_connection->bind(endpoint);
-	} else {
-		_connection->connect(endpoint);
-	}
-}
-
-endPoint::~endPoint() {
-	std::cout << __PRETTY_FUNCTION__ << "Destroying object" << std::endl;
-	if (_connection != nullptr) {
-		delete _connection;
-	}
-}
-zmqpp::socket_type endPoint::getsockettype(endPointType_t type) {
-	switch (type) {
-		case PUSH:
-		case SERVER_PUSH:
-			{
-				return zmqpp::socket_type::push;
-			}
-			break;
-		case PULL:
-		case SERVER_PULL:
-			{
-				return zmqpp::socket_type::pull;
-			}
-			break;
-		case REQ:
-		case SERVER_REQ:
-			{
-                return zmqpp::socket_type::request;
-            }
-            break;
-		case RESP:
-		case SERVER_RESP:
-			{
-                return zmqpp::socket_type::reply;
-            }
-            break;
-		case PUBLISH:
-		case SERVER_PUBLISH:
-			{
-                return zmqpp::socket_type::publish;
-            }
-            break;
-		case SUBSCRIBE:
-		case SERVER_SUBSCRIBE:
-		{
-			return zmqpp::socket_type::subscribe;
-		}
-		break;
-	}
-}
-bool endPoint::isSocketCatagoryServer() {
-	switch (_endpointType) {
-		case PUSH:
-		case PULL:
-		case REQ:
-		case RESP:
-		case PUBLISH:
-		case SUBSCRIBE:
-		{
-			return false;
-		}
-		break;
-		case SERVER_PUSH:
-		case SERVER_PULL:
-		case SERVER_REQ:
-		case SERVER_RESP:
-		case SERVER_PUBLISH:
-		case SERVER_SUBSCRIBE:
-		{
-			return true;
-		}
-		break;
-	}
-	return true;
-}
-bool endPoint::send(std::vector<std::string> &msg) {
-	pktmessage message(msg);
-	return send(message);
-}
-bool endPoint::send(pktmessage &msg) {
-	zmqpp::message message;
-	msg.compose(message);
-	_connection->send(message);
-	return true;
-}
-bool endPoint::recieve(std::vector<std::string> &msg) {
-	pktmessage message;
-	recieve(message);
-	//TODO
-	return true;
-}
-bool endPoint::recieve(pktmessage &msg) {
-	zmqpp::message message;
-	_connection->receive(message);
-	msg.copy(message);
-    return true;
-}
-bool endPoint::subscribe(std::string topic) {
-	_connection->subscribe(topic);
-	return true;
-}
-
-pktdispatchendpoint * pktdispatchendpoint::instance = nullptr;
 pktdispatchendpoint::pktdispatchendpoint() {
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Constructing Object" << std::endl;
 }
 pktdispatchendpoint::~pktdispatchendpoint() {
 std::cout << __PRETTY_FUNCTION__ << "Destructing object" << std::endl;
+	cleanup();
 }
-pktdispatchendpoint * pktdispatchendpoint::getInstance() {
-	if (!instance) {
-        instance = new pktdispatchendpoint();
-        std::cout << __PRETTY_FUNCTION__ << ":" << "Creating instance" << std::endl;
-        return instance;
-    }
-    return instance;
-}
-
-void pktdispatchendpoint::configure(std::string &config) {
-	std::cout << __PRETTY_FUNCTION__ << "Configuring object" << std::endl;
-}
-
-bool pktdispatchendpoint::setEp(std::pair <std::string, endPoint *> &ep, std::string endpoint, endPointType_t type) {
-	if (endpoint.empty() || !ep.first.empty()) {
-		std::cout << __PRETTY_FUNCTION__ << "Invalid param" << std::endl;
-
-		return false;
-	}
-	ep.first = endpoint;
-	ep.second = new endPoint(endpoint, type);
-	return true;
-}
-
-
-bool pktdispatchendpoint::updateEp(std::pair <std::string, endPoint *> &ep, std::string endpoint, endPointType_t type) {
-	if (endpoint.empty() || ep.first.empty()) {
-		std::cout << __PRETTY_FUNCTION__ << "Invalid param" << std::endl;
-		return false;
-	}
-	std::string oldEp= ep.first;
-	endPoint *oldObj =  ep.second;
-	if (oldEp == endpoint) {
-		std::cout << __PRETTY_FUNCTION__ << "Same as old" << std::endl;
-		return true;
+bool pktdispatchendpoint::registerTopic(std::string topic) {
+	if (!pubEps.contains(topic)) {
+		std::tuple<std::string, endPoint *, int> *ep = getHealthyEndpoint(pubEndpoints);
+		if (ep) {
+			std::get<2>(*ep) +=1;
+			pubEps[topic] = *ep;	
+		} else {
+			std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
+			return false;
+		}
 	} else {
-		ep.first = endpoint;
-		ep.second = new endPoint(endpoint, type);
-
-		delete oldObj;
+		std::cout << __PRETTY_FUNCTION__ << "Topic : " << topic << " already exist" << std::endl;
+	}
+	if (!subEps.contains(topic)) {
+		std::tuple<std::string, endPoint *, int> *ep = getHealthyEndpoint(subEndpoints);
+		if (ep) {
+			std::get<2>(*ep) +=1;
+			subEps[topic] = *ep;
+		} else {
+			std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
+			return false;
+		}
+	} else {
+		std::cout << __PRETTY_FUNCTION__ << "Topic : " << topic << " already exist" << std::endl;
 	}
 	return true;
 }
-
-std::string pktdispatchendpoint::getEp(std::pair <std::string, endPoint *> &ep) {
-	if (!ep.first.empty()) {
-		return ep.first;
+bool pktdispatchendpoint::unregisterTopic(std::string topic) {
+	if (!pubEps.contains(topic)) {
+		std::string endpoint = std::get<0>(pubEps[topic]);
+		auto ep = getEndpoint(pubEndpoints, endpoint);
+		if (ep) {
+			std::get<2>(*ep) -=1;
+			pubEps.erase(topic);
+		} else {
+			std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
+			return false;
+		}
+	} else {
+		std::cout << __PRETTY_FUNCTION__ << "Topic : " << topic << " noot available" << std::endl;
+	}
+	if (!subEps.contains(topic)) {
+		std::string endpoint = std::get<0>(subEps[topic]);
+		auto ep = getEndpoint(subEndpoints, endpoint);
+		if (ep) {
+			std::get<2>(*ep) -=1;
+			pubEps.erase(topic);
+		} else {
+			std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
+			return false;
+		}
+	} else {
+		std::cout << __PRETTY_FUNCTION__ << "Topic : " << topic << " not available" << std::endl;
+	}
+	return true;
+}
+std::string pktdispatchendpoint::getPublisherEndpoint(std::string topic) {
+	std::string endpoint;
+	if (pubEps.contains(topic))
+	{
+		endpoint = std::get<0>(pubEps[topic]);
+	}
+	if (!endpoint.empty())
+	{
+		return endpoint;
 	}
 	return {};
 }
+endPoint * pktdispatchendpoint::getPublisherConnection(std::string topic) {
+	endPoint *con = nullptr;
+	if (pubEps.contains(topic))
+	{
+		con = std::get<1>(pubEps[topic]);
+		if (!con) {
+			std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
+		}
+	}
+	return con;
+}
+std::string pktdispatchendpoint::getSubscriberEndpoint(std::string topic) {
+	std::string endpoint;
+	if (subEps.contains(topic))
+	{
+		endpoint = std::get<0>(subEps[topic]);
+	}
+	if (!endpoint.empty())
+	{
+		return endpoint;
+	}
+	return {};
+}
+endPoint * pktdispatchendpoint::getSubscriberConnection(std::string topic) {
+	endPoint *con = nullptr;
+	if (subEps.contains(topic))
+	{
+		con = std::get<1>(subEps[topic]);
+		if (!con) {
+			std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
+		}
+	}
+	return con;
+}
+void pktdispatchendpoint::printPubEps() {
+	std::cout << "Topic to Publisher Endpoints" << std::endl;
+	std::cout << "---------------------------------" << std::endl;
+	for (auto &pubep : pubEps) {
+		std::cout << "TOPIC : " << pubep.first <<
+			" PEP: " << std::get<0>(pubep.second) <<
+			" CON: " << std::get<1>(pubep.second) <<
+			std::endl;
+	}
+}
+void pktdispatchendpoint::printSubEps() {
+	std::cout << "Topic to Subscriber Endpoints" << std::endl;
+	std::cout << "---------------------------------" << std::endl;
+	for (auto &subep : subEps) {
+		std::cout << "TOPIC : " << subep.first <<
+			" SEP: " << std::get<0>(subep.second) <<
+			" CON: " << std::get<1>(subep.second) <<
+			std::endl;
+	}
+}
 
-endPoint *pktdispatchendpoint::getConnection(std::pair <std::string, endPoint *> &ep) {
-	if (!ep.first.empty()) {
-		return ep.second;
+std::tuple<std::string, endPoint *, int> pktdispatchendpoint::createEndpoint(std::string endpoint, endPointType_t type) {
+	if (endpoint.empty() == true) {
+		std::cout << "Invalid param" << std::endl;
+		std::abort();
+		return {};
+	}
+	std::tuple<std::string, endPoint *, int> config;
+	std::get<0>(config) = endpoint;
+    std::get<1>(config) = new endPoint(endpoint, type);
+    std::get<2>(config) = 0;
+	return config;
+}
+bool pktdispatchendpoint::updateEndpoint(std::tuple<std::string, endPoint *, int> &epDb, std::string endpoint, endPointType_t type) {
+}
+bool pktdispatchendpoint::releaseEndpoint(std::tuple<std::string, endPoint *, int> &epDb, std::string endpoint, endPointType_t type) {
+}
+std::tuple<std::string, endPoint *, int> *pktdispatchendpoint::getEndpoint(std::list<std::tuple<std::string, endPoint *, int>> &list, std::string endpoint) {
+	if (endpoint.empty() == true) {
+		std::cout << "Invalid param" << std::endl;
+		std::abort();
+		return nullptr;
+	}
+	for (auto &l : list) {
+		if (std::get<0>(l) == endpoint) {
+			return &l;
+		}
 	}
 	return nullptr;
 }
-
-bool pktdispatchendpoint::setEp(std::map<std::string, std::pair <std::string, endPoint *>> &ep, std::string topic, std::string endpoint , endPointType_t type) {
-	if (topic.empty() || endpoint.empty()) {
-        std::cout << __PRETTY_FUNCTION__ << "Invalid param" << std::endl;
-        return false;
-    }
-	if (!ep.contains(topic)) {
-		ep[topic].first = endpoint;
-		ep[topic].second = new endPoint(endpoint, type);
-		return true;
-	} else {
-		std::cout << __PRETTY_FUNCTION__ << "EP already exist in the map . Use update insteed....." << std::endl;
+bool pktdispatchendpoint::isEndpointExistInList(std::string endpoint, std::list<std::tuple<std::string, endPoint *, int>> &list) {
+	if (endpoint.empty() == true) {
+		std::cout << "Invalid param" << std::endl;
+		std::abort();
 		return false;
 	}
-	return true;
-}
-
-bool pktdispatchendpoint::updateEp(std::map<std::string, std::pair <std::string, endPoint *>> &ep, std::string topic, std::string endpoint, endPointType_t type) {
-	if (topic.empty() || endpoint.empty()) {
-		std::cout << __PRETTY_FUNCTION__ << "Invalid param" << std::endl;
-		return false;
-	}
-	if (ep.contains(topic)) { 
-		if (ep[topic].first == endpoint) {
-			std::cout << __PRETTY_FUNCTION__ << "Same as old" << std::endl;
+	for (auto &l : list) {
+		if (endpoint == std::get<0>(l)) {
 			return true;
 		}
-		std::string oldEp = ep[topic].first;
-		endPoint *old = ep[topic].second;
-		ep[topic].first = endpoint;
-		ep[topic].second = new endPoint(endpoint, type);
-
-		delete old;
-		return true;
-	} else {
-		return setEp(ep, topic, endpoint, type);
 	}
 	return false;
 }
-
-std::string pktdispatchendpoint::getEp(std::map<std::string, std::pair <std::string, endPoint *>> &ep, std::string topic) {
-	if (topic.empty()) {
-		std::cout << __PRETTY_FUNCTION__ << "Invalid param" << std::endl;
-		return {};
-	}
-	if (ep.contains(topic)) {
-		return ep[topic].first;
-	}
-	return {};
+bool pktdispatchendpoint::removeEndpoint(std::list<std::tuple<std::string, endPoint *, int>> &list, std::string endpoint) {
 }
 
-endPoint *pktdispatchendpoint::getConnection(std::map<std::string, std::pair <std::string, endPoint *>> &ep, std::string topic) {
-	if (topic.empty()) {
-		std::cout << __PRETTY_FUNCTION__ << "Invalid param" << std::endl;
-		return nullptr;
+std::tuple<std::string, endPoint *, int> *pktdispatchendpoint::getHealthyEndpoint(std::list<std::tuple<std::string, endPoint *, int>> &list) {
+	int item = 10000, count = 0;
+	int score = 10000;
+	for (auto &l : list) {
+		if (std::get<2>(l) < score) {
+			item = count;
+			score = std::get<2>(l);
+		}
+		count++;
 	}
-	if (ep.contains(topic)) {
-		return ep[topic].second;
+	count = 0;
+	for (auto &l : list) {
+		if (item ==  count) {
+			return &l;
+		}
+		count++;
 	}
 	return nullptr;
 }
-
-
-bool pktdispatchendpoint::setMgmtEp(std::string endpoint, endPointType_t type) {
-	return setEp(mgmtEp, endpoint, type);
+bool pktdispatchendpoint::addPubEndpoint(std::string endpoint) {
+	if (endpoint.empty()) {
+		std::cout << "Invalid param" << std::endl;
+		std::abort();
+		return false;
+	}
+	if (!isEndpointExistInList(endpoint, pubEndpoints)) {
+		pubEndpoints.push_back(createEndpoint(endpoint, SERVER_PULL));
+	} else {
+		return false;
+	}
+	return true;
 }
-bool pktdispatchendpoint::updateMgmtEp(std::string endpoint, endPointType_t type) {
-	return updateEp(mgmtEp, endpoint, type);
+endPoint * pktdispatchendpoint::getPubEndpointConnection(std::string endpoint) {
+	if (endpoint.empty()) {
+		std::cout << "Invalid param" << std::endl;
+		std::abort();
+		return nullptr;
+	}
+	if (isEndpointExistInList(endpoint, pubEndpoints)) {
+		auto ep = getEndpoint(pubEndpoints, endpoint);
+		if (ep) {
+			return std::get<1>(*ep);
+		} else {
+			std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
+		}
+	}
+	print();
+	return nullptr;
 }
-std::string pktdispatchendpoint::getMgmtEp() {
-	return getEp(mgmtEp);
+bool pktdispatchendpoint::addSubEndpoint(std::string endpoint) {
+	if (endpoint.empty()) {
+		std::cout << "Invalid param" << std::endl;
+		std::abort();
+        return false;
+    }
+	if (!isEndpointExistInList(endpoint, subEndpoints)) {
+        subEndpoints.push_back(createEndpoint(endpoint, SERVER_PUBLISH));
+    } else {
+        return false;
+    }
+    return true;
+}
+bool pktdispatchendpoint::addMgmtEndpoint(std::string endpoint) {
+    if (endpoint.empty()) {
+		std::cout << "Invalid param" << std::endl;
+		std::abort();
+        return false;
+    }
+	mgmtEndpoint = createEndpoint(endpoint, SERVER_RESP);
+	return true;
 }
 endPoint *pktdispatchendpoint::getMgmtConnection() {
-	return getConnection(mgmtEp);
+	if (std::get<1>(mgmtEndpoint) != nullptr) {
+		return std::get<1>(mgmtEndpoint);
+	}
+	return nullptr;
 }
-
-bool pktdispatchendpoint::setAdvEp(std::string endpoint, endPointType_t type) {
-	return setEp(advEp, endpoint, type);
-}
-bool pktdispatchendpoint::updateAdvEp(std::string endpoint, endPointType_t type) {
-	return updateEp(advEp, endpoint, type);
-}
-std::string pktdispatchendpoint::getAdvEp() {
-	return getEp(advEp);
+bool pktdispatchendpoint::addAdvEndpoint(std::string endpoint) {
+    if (endpoint.empty()) {
+		std::cout << "Invalid param" << std::endl;
+		std::abort();
+        return false;
+    }
+	advEndpoint = createEndpoint(endpoint, SERVER_PUBLISH);
+	return true;
 }
 endPoint *pktdispatchendpoint::getAdvConnection() {
-	return getConnection(advEp);
+	if (std::get<1>(advEndpoint) != nullptr) {
+		return std::get<1>(advEndpoint);
+	}
+	return nullptr;
 }
+void pktdispatchendpoint::cleanup() {
+	std::cout << "Cleaning up MEP : " << std::get<0>(mgmtEndpoint) << "CON: " << std::get<1>(mgmtEndpoint) << std::endl;
+	delete std::get<1>(mgmtEndpoint);
+	std::cout << "Cleaning up AEP : " << std::get<0>(advEndpoint) << "CON: " << std::get<1>(advEndpoint) << std::endl;
+	delete  std::get<1>(advEndpoint);
+	for (auto &pubep : pubEndpoints) {
+		std::cout << "Clean up Publisher EP : " << std::get<0>(pubep) << " CON: " << std::get<1>(pubep) << std::endl;
+		delete std::get<1>(pubep);
+	}
+	for (auto &subep : subEndpoints) {
+		std::cout << "Clean up Subscriber EP : " << std::get<0>(subep) << " CON: " << std::get<1>(subep) << std::endl;
+		delete std::get<1>(subep);
+	}
 
-
-bool pktdispatchendpoint::setPubEp(std::string topic, std::string endpoint, endPointType_t type) {
-	return setEp(pubEps, topic, endpoint, type);
 }
-bool pktdispatchendpoint::updatePubEp(std::string topic, std::string endpoint, endPointType_t type) {
-	return updateEp(pubEps, topic, endpoint, type);
+void pktdispatchendpoint::printPubEndpoint() {
+	std::cout << "Publisher Endpoints" << std::endl;
+	std::cout << "---------------------------------" << std::endl;
+	for (auto &pubep : pubEndpoints) {
+		std::cout << "EP : " << std::get<0>(pubep) <<
+			" CON: " << std::get<1>(pubep) <<
+			" UC : " << std::get<2>(pubep) <<
+			std::endl;
+	}
 }
-std::string pktdispatchendpoint::getPubEp(std::string topic) {
-	return getEp(pubEps, topic);
+void pktdispatchendpoint::printSubEndpoint() {
+	std::cout << "Subscriber Endpoints" << std::endl;
+	std::cout << "---------------------------------" << std::endl;
+	for (auto &subep : subEndpoints) {
+		std::cout << "EP : " << std::get<0>(subep) <<
+			" CON: " << std::get<1>(subep) <<
+			" UC : " << std::get<2>(subep) <<
+			std::endl;
+	}
 }
-endPoint *pktdispatchendpoint::getPubConnection(std::string topic) {
-	return getConnection(pubEps, topic);
-}
-
-
-bool pktdispatchendpoint::setSubEp(std::string topic, std::string endpoint, endPointType_t type) {
-	return setEp(subEps, topic, endpoint, type);
-}
-bool pktdispatchendpoint::updateSubEp(std::string topic, std::string endpoint, endPointType_t type) {
-	return updateEp(subEps, topic, endpoint, type);
-}
-std::string pktdispatchendpoint::getSubEp(std::string topic) {
-	return getEp(subEps, topic);
-}
-endPoint *pktdispatchendpoint::getSubConnection(std::string topic) {
-	return getConnection(subEps, topic);
+void pktdispatchendpoint::print() {
+	std::cout << "MEP : " << std::get<0>(mgmtEndpoint) << "CON: " << std::get<1>(mgmtEndpoint) << std::endl;
+	std::cout << "AEP : " << std::get<0>(advEndpoint) << "CON: " << std::get<1>(advEndpoint) << std::endl;
+	printPubEndpoint();
+	printSubEndpoint();
+	printPubEps();
+	printSubEps();
 }

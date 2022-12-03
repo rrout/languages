@@ -1,9 +1,12 @@
 #include "hdr.h"
+#include "constants.h"
+#include "endpoint.h"
 #include "pktdispatchconfig.h"
 #include "pktpublisher.h"
 #include "pktsubscriber.h"
 
 int main() {
+#if 1
 	std::unique_ptr<pktdispatchconfig> pktDispatch( pktdispatchconfig::createInstance());
 	pktDispatch->cratePublisher(PD_TOPIC_0_TOPIC_A, "AAAAA");
 	pktDispatch->cratePublisher(PD_TOPIC_1_TOPIC_B, "BBBBB");
@@ -32,5 +35,18 @@ int main() {
 	pktDispatch->printSubscriberlist();
 
 	pktDispatch->start();
+#endif
+	pktdispatchendpoint p;
+	p.addMgmtEndpoint("tcp://*:4243");
+	p.addAdvEndpoint("tcp://*:4244");
+	p.addPubEndpoint("tcp://*:4242");
+	p.addSubEndpoint("tcp://*:4245");
+	p.registerTopic("AAAAAAAAA");
+	p.registerTopic("BBBBBBBBB");
+	 p.registerTopic("CCCC");
+	p.printPubEps();
+	p.printSubEps();
+	p.print();
+
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Exit" << std::endl;
 }

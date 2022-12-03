@@ -43,6 +43,8 @@ class pktmessage {
         void construct(zmqpp::message &msg);
 		void copy(std::vector<std::string> &msg);
 		void copy(zmqpp::message &msg);
+		void copyback(std::vector<std::string> &msg);
+		void copyback(zmqpp::message &msg);
 
 		bool validReqRespMsg(std::vector<std::string> &reqRespMsg);
 		bool validTopicMsg(std::vector<std::string> &topicMsg);

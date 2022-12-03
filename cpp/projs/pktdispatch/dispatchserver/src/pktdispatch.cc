@@ -1,4 +1,6 @@
 #include "hdr.h"
+#include "constants.h"
+#include "endpoint.h"
 #include "pktdispatch.h"
 #include "pktdispatchconfig.h"
 #include "pktpublisher.h"
@@ -15,107 +17,72 @@ pktdispatch::~pktdispatch() {
 
 void pktdispatch::publishDataPoller() {
 	pktdispatchconfig *inst = pktdispatchconfig::getInstance();
-	zmqpp::socket socket (context, pubDataPollertype);
-	// bind to the socket
-	cout << "Binding to " << pubDataPollerEndpoint << "..." << endl;
-	socket.bind(pubDataPollerEndpoint);
 	while(1) {
-		// receive the message
 		cout << "Receiving message..." << endl;
-		std::string topic;
-		std::string address;
-		std::string name;
-		zmqpp::message message;
-		std::string msg;
-		// decompose the message
-		socket.receive(message);
-		int msgParts = message.parts();
-		for (int i = 0; i < msgParts; i++) {
-			if (i == 0) {
-				topic = message.get(0);
+		pktmessage msg;
+		endPoint * endpoint = inst->endpoints.getPubEndpointConnection(PUB_ENDPOINT);
+		if (endpoint) {
+			endpoint->recieve(msg);
+			std::string topic = msg.getPart(0);
+			std::cout << "TOPIC : " << topic <<
+            "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << std::endl;
+			msg.print();
+			pktpublisher *p = inst->getPublisher(topic);
+			if (p) {
+				std::vector<std::string> buf;
+				msg.copyback(buf);
+				p->publish(buf);
+			} else {
+				std::cout << __PRETTY_FUNCTION__ << "No Publisher found : " << topic << " Discarding...." <<  std::endl;
 			}
-			if (i == 1) {
-                address = message.get(1);
-            }
-			if (i == 2) {
-                name = message.get(2);
-            }
-			std::cout << "Msg(" << i << ") : " << message.get(i) << std::endl;
-		}
-		std::cout << "Msg : [ " << topic << " ][ " << address << " ][ " << name << " ] : ..... " << std::endl;
-		pktpublisher *p = inst->getPublisher(topic);
-		if (p) {
-			std::vector<std::string> buf;
-			for (int i = 0; i < msgParts; i++) {
-				buf.push_back(message.get(i));
-			}
-			p->publish(buf);
 		} else {
-			std::cout << __PRETTY_FUNCTION__ << "No Publisher found : " << topic << " Discarding...." <<  std::endl;
+			std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
+			std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 		}
 	}
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Exit" << std::endl;
 }
 
 void pktdispatch::dispatchMgmtPoller() {
-	zmqpp::socket socket (context, mgmtendpointType);
-    cout << "Binding to " << mgmtendpoint << "..." << endl;
-    socket.bind(mgmtendpoint);
-    while(1) {
-        // receive the message
-        cout << "Receiving publishing client request..." << endl;
-        zmqpp::message request;
-		zmqpp::message reply;
-        // decompose the message
-        socket.receive(request);
-
-		pktmessage req(request);
-		pktmessage resp("SERVER");
-		processRqust(req, resp);
-		try {
-			resp.compose(reply);
-		} catch(...) {
-			std::abort();
+	pktdispatchconfig *inst = pktdispatchconfig::getInstance();
+	while(1) {
+		cout << "Receiving mgmt client request..." << endl;
+		endPoint * endpoint = inst->endpoints.getMgmtConnection();
+		if (endpoint) {
+			pktmessage req;
+			endpoint->recieve(req);
+			pktmessage resp("SERVER");
+			processRqust(req, resp);
+			endpoint->send(resp);
+		} else {
+			std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
 		}
-		socket.send(reply);
-
-		//socket.send(message);
-    }
+	}
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Exit" << std::endl;
 }
 
 void pktdispatch::infoPublishPoller() {
-	zmqpp::socket socket (context, infoPubEndpointType);
-	cout << "Binding to " << infoPubEndpoint << "..." << endl;
-	socket.bind(infoPubEndpoint);
+	pktdispatchconfig *inst = pktdispatchconfig::getInstance();
 	while(1) {
-		// receive the message
-		std::cout << __PRETTY_FUNCTION__ << __LINE__ <<
-			"Receiving message..." << endl;
-		zmqpp::message message;
-		// decompose the message
-		//socket.receive(message);
+		std::cout << __PRETTY_FUNCTION__ << __LINE__ << "ADV THREAD" << std::endl;
 		pktmessage req("SERVER");
 		std::string a = ";;;;;;;;;;;;;;;;;;;;;;";
 		req.fillTopic("CLIENT:1", TOPIC_CONTENT_PLANE_TEXT, a);
-		req.compose(message);
-		socket.send(message);
-		std::this_thread::sleep_for(std::chrono::milliseconds(60000));
+		endPoint *endpoint = inst->endpoints.getAdvConnection();
+		if (endpoint) {
+			endpoint->send(req);
+		} else {
+			std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 	}
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Exit" << std::endl;
 }
 
 void pktdispatch::dispatchEngiene() {
-	zmqpp::socket socket (context, dispatchtype);
-	cout << "Binding to " << dispatchEndpoint << "..." << endl;
-	socket.bind(dispatchEndpoint);
-	while(1) {
-        // receive the message
-        cout << "Receiving message..." << endl;
-        zmqpp::message message;
-        // decompose the message
-        socket.receive(message);
-    }
+	while (1) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(90000000));
+	}
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Exit" << std::endl;
 }
 

@@ -1,4 +1,6 @@
 #include "hdr.h"
+#include "constants.h"
+#include "endpoint.h"
 #include "pktpublisher.h"
 #include "pktdispatchconfig.h"
 
@@ -156,6 +158,19 @@ bool pktpublisher::printBuf() {
 bool pktpublisher::publishBuf(std::vector<std::string> buffer) {
 	pktdispatchconfig *inst = pktdispatchconfig::getInstance();
 	std::cout << __PRETTY_FUNCTION__ << "Publishing Topic : " << buffer[0] << std::endl;
+	endPoint * subendpoint = inst->endpoints.getSubscriberConnection(getTopic());
+	if (subendpoint) {
+		std::cout << __PRETTY_FUNCTION__ << "Snding to( " << getTopic() << ") : " << std::endl;
+		std::cout << "TOPIC : " << getTopic() <<
+			">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
+		pktmessage msg(buffer);
+		subendpoint->send(msg);
+		msg.print();
+	} else {
+		std::cout << __PRETTY_FUNCTION__ << "Subscriber Endpoint is NULL" << std::endl;
+		inst->endpoints.print();
+		return false;
+	}
 	publishSendCount();
 	inst->updataSubscriberStatistics(getTopic());
 	//TODO

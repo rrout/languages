@@ -79,9 +79,14 @@ void dispatchclientsub::processRecieve() {
 		_con->receive(reply);
 		pktmessage message(reply);
 		message.printPretty();
+		if (!message.valid()) {
+			std::cout << __PRETTY_FUNCTION__ << "Invalid Msg Discarding" << std::endl;
+			continue;
+		}
 
 		std::vector<std::string> msg;
-		for (int i = 0; i < message.getContentSize(); i++) {
+		int contentSize = message.getContentSize();
+		for (int i = 0; i < contentSize; i++) {
 			msg.push_back(message.getContent(i));
 		}
 		std::lock_guard<std::mutex> lock(_lock);

@@ -15,6 +15,7 @@ class pktdispatch {
 		void infoPublishPoller();
 		void dispatchEngiene();
 		bool processRqust(pktmessage &req, pktmessage &res);
+		void sendAdv(std::string topic, pktmessage &msg);
 		void startProcessing();
 };
 

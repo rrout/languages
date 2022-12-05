@@ -37,7 +37,7 @@ void pktdispatch::publishDataPoller() {
 			}
 		} else {
 			std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
-			std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+			std::this_thread::sleep_for(std::chrono::milliseconds(ERR_INT_MILISEC));
 		}
 	}
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Exit" << std::endl;
@@ -65,23 +65,32 @@ void pktdispatch::infoPublishPoller() {
 	pktdispatchconfig *inst = pktdispatchconfig::getInstance();
 	while(1) {
 		std::cout << __PRETTY_FUNCTION__ << __LINE__ << "ADV THREAD" << std::endl;
-		pktmessage req("SERVER");
+		std::string self = inst->endpoints.getName();
+		pktmessage req(self);
 		std::string a = ";;;;;;;;;;;;;;;;;;;;;;";
 		req.fillTopic("CLIENT:1", TOPIC_CONTENT_PLANE_TEXT, a);
+
+		for (auto &tentry : inst->publisher) {
+			std::cout << __PRETTY_FUNCTION__ << "Adv processing Topic : " << tentry.first << std::endl;
+			for (auto &list : tentry.second->pubEntryList) {
+				std::cout << __PRETTY_FUNCTION__ << "Adv processing Client : " << list.first << std::endl;
+				sendAdv(tentry.first, req);
+			}
+		}
 		endPoint *endpoint = inst->endpoints.getAdvConnection();
 		if (endpoint) {
 			endpoint->send(req);
 		} else {
 			std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+		std::this_thread::sleep_for(std::chrono::milliseconds(ADV_INT_MILISEC));
 	}
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Exit" << std::endl;
 }
 
 void pktdispatch::dispatchEngiene() {
 	while (1) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(90000000));
+		std::this_thread::sleep_for(std::chrono::milliseconds(ERR_INT_MILISEC));
 	}
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Exit" << std::endl;
 }
@@ -153,6 +162,17 @@ bool pktdispatch::processRqust(pktmessage &req, pktmessage &res) {
 	res.type(MSG_TYPE_RESP);
 	res.print();
 	return true;
+}
+void pktdispatch::sendAdv(std::string topic, pktmessage &msg) {
+	pktdispatchconfig *inst = pktdispatchconfig::getInstance();
+	endPoint *endpoint = inst->endpoints.getAdvConnection();
+	if (msg.valid()) {
+        if (endpoint) {
+            endpoint->send(msg);
+        } else {
+            std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
+        }
+	}
 }
 
 void pktdispatch::startProcessing() {

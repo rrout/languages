@@ -110,7 +110,13 @@ std::string pktmessage::getIdIPart() {
 }
 int pktmessage::getContentSize() {
 	std::string count = getPart(REQRESP_MSG_FIELD_PARTCOUNT);
-	return stoi(count);
+	try {
+		return stoi(count);
+	} catch (...) {
+		std::cout << "WRONG MSG" << std::endl;
+		return 0;
+	}
+	return 0;
 }
 std::string pktmessage::getContent(int index) {
 	return getPart(REQRESP_MSG_FIELD_TEXT + index);

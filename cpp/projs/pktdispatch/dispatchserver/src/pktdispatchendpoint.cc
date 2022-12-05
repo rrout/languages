@@ -5,17 +5,34 @@
 
 pktdispatchendpoint::pktdispatchendpoint() {
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Constructing Object" << std::endl;
+	myName = "SERVER";
+	myAddress = getHostName();
+}
+pktdispatchendpoint::pktdispatchendpoint(std::string name, std::string role) {
+    std::cout << __PRETTY_FUNCTION__ << ":" << "Constructing Object" << std::endl;
+    myName = name;
+    myAddress = getHostName();
+	myRole = role;
 }
 pktdispatchendpoint::~pktdispatchendpoint() {
 std::cout << __PRETTY_FUNCTION__ << "Destructing object" << std::endl;
 	cleanup();
+}
+std::string pktdispatchendpoint::getName() {
+	return myName;
+}
+std::string pktdispatchendpoint::getAddress() {
+	return myAddress;
+}
+std::string pktdispatchendpoint::getRole() {
+	return myRole;
 }
 bool pktdispatchendpoint::registerTopic(std::string topic) {
 	if (!pubEps.contains(topic)) {
 		std::tuple<std::string, endPoint *, int> *ep = getHealthyEndpoint(pubEndpoints);
 		if (ep) {
 			std::get<2>(*ep) +=1;
-			pubEps[topic] = *ep;	
+			pubEps[topic] = *ep;
 		} else {
 			std::cout << __PRETTY_FUNCTION__ << "NULL PTR Returned" << std::endl;
 			return false;
@@ -78,6 +95,17 @@ std::string pktdispatchendpoint::getPublisherEndpoint(std::string topic) {
 	}
 	return {};
 }
+std::string pktdispatchendpoint::getPublisherFQEndpoint(std::string topic) {
+	std::string endpoint = getPublisherEndpoint(topic);
+	std::string fqep;
+	std::vector<std::string> ss = spilt(endpoint, ':');
+	ss[1] = myAddress;
+	for (auto &s : ss) {
+		fqep += s;
+	}
+	return fqep;
+}
+
 endPoint * pktdispatchendpoint::getPublisherConnection(std::string topic) {
 	endPoint *con = nullptr;
 	if (pubEps.contains(topic))
@@ -100,6 +128,16 @@ std::string pktdispatchendpoint::getSubscriberEndpoint(std::string topic) {
 		return endpoint;
 	}
 	return {};
+}
+std::string pktdispatchendpoint::getSubscriberFQEndpoint(std::string topic) {
+	std::string endpoint = getSubscriberEndpoint(topic);
+	std::string fqep;
+	std::vector<std::string> ss = spilt(endpoint, ':');
+	ss[1] = myAddress;
+	for (auto &s : ss) {
+		fqep += s;
+	}
+	return fqep;
 }
 endPoint * pktdispatchendpoint::getSubscriberConnection(std::string topic) {
 	endPoint *con = nullptr;

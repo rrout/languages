@@ -7,6 +7,7 @@
 
 class pktdispatchendpoint {
 	private:
+		std::string myName;
 		std::string myAddress;
 		std::string myRole;
 
@@ -22,12 +23,18 @@ class pktdispatchendpoint {
 		void cleanup();
 	public:
 		pktdispatchendpoint();
+		pktdispatchendpoint(std::string name, std::string role);
 		~pktdispatchendpoint();
+		std::string getName();
+		std::string getAddress();
+		std::string getRole();
 		bool registerTopic(std::string topic);
 		bool unregisterTopic(std::string topic);
 		std::string getPublisherEndpoint(std::string topic);
+		std::string getPublisherFQEndpoint(std::string topic);
 		endPoint * getPublisherConnection(std::string topic) ;
 		std::string getSubscriberEndpoint(std::string topic);
+		std::string getSubscriberFQEndpoint(std::string topic);
 		endPoint * getSubscriberConnection(std::string topic);
 		void printPubEps();
 		void printSubEps();

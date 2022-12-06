@@ -10,6 +10,7 @@ class pktdispatchendpoint {
 		std::string myName;
 		std::string myAddress;
 		std::string myRole;
+		std::map<std::string, std::string> myTopics; // TOPIC - Created Time
 
 		std::tuple<std::string, endPoint *, int> mgmtEndpoint;
 		std::tuple<std::string, endPoint *, int> advEndpoint;
@@ -28,6 +29,10 @@ class pktdispatchendpoint {
 		std::string getName();
 		std::string getAddress();
 		std::string getRole();
+		bool addTopic(std::string topic);
+		bool delTopic(std::string topic);
+		void printTopics();
+		std::vector<std::string> getTopics();
 		bool registerTopic(std::string topic);
 		bool unregisterTopic(std::string topic);
 		std::string getPublisherEndpoint(std::string topic);
@@ -56,8 +61,10 @@ class pktdispatchendpoint {
 
 		bool addMgmtEndpoint(std::string endpoint);
 		endPoint *getMgmtConnection();
+		std::string getMgmtFQEndpoint();
 		bool addAdvEndpoint(std::string endpoint);
 		endPoint *getAdvConnection();
+		std::string getAdvFQEndpoint();
 		void printPubEndpoint();
 		void printSubEndpoint();
 		void print();

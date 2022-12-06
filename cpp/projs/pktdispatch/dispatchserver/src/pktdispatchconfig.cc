@@ -90,10 +90,9 @@ void pktdispatchconfig::setPublisher(std::string topic, std::string name) {
 	if (publisher.find(topic) == publisher.end()) {
         std::cout << __PRETTY_FUNCTION__ << "Create publisher for topic : " << topic << std::endl;
         publisher[topic] = new pktpublisher(topic);
-		//TODO
 		pktdispatchconfig *inst = pktdispatchconfig::getInstance();
+		inst->endpoints.addTopic(topic);
 		inst->endpoints.registerTopic(topic);
-		inst->endpoints.print();
 		publisher[topic]->addEntry(name);
     } else {
         std::cout << __PRETTY_FUNCTION__ << "Pblisher Topic " << topic << " Alreay exists" <<  std::endl;
@@ -359,6 +358,7 @@ void pktdispatchconfig::cmdLineProcess() {
 		std::cout << __PRETTY_FUNCTION__ << std::endl <<
 			"------------------------------------------" << std::endl;
 		std::cout << "----------------- ENDPOINTS -----------------" << std::endl;
+		endpoints.printTopics();
 		endpoints.print();
 		std::cout << "---------------------------------------------" << std::endl;
 		std::cout << "----------------- PUBLISHER -----------------" << std::endl;

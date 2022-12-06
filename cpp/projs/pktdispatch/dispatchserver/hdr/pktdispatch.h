@@ -13,9 +13,10 @@ class pktdispatch {
 		void publishDataPoller();
 		void dispatchMgmtPoller();
 		void infoPublishPoller();
-		void dispatchEngiene();
+		void maintainanceEngiene();
 		bool processRqust(pktmessage &req, pktmessage &res);
-		void sendAdv(std::string topic, pktmessage &msg);
+		void sendAdv(std::string clientOrTopic, pktmessage &msg);
+		void sendPeriodicAdv(std::string clientOrTopic, std::vector<std::string> &msg);
 		void startProcessing();
 };
 

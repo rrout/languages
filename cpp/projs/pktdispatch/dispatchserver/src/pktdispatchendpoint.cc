@@ -27,6 +27,52 @@ std::string pktdispatchendpoint::getAddress() {
 std::string pktdispatchendpoint::getRole() {
 	return myRole;
 }
+bool pktdispatchendpoint::addTopic(std::string topic) {
+	if (topic.empty()) {
+		return false;
+	}
+	if(myTopics.contains(topic)) {
+		std::cout << __PRETTY_FUNCTION__ << " Duplicate Topic : " << topic << std::endl;
+		return false;
+	}
+	myTopics[topic] = dateTimeNow();
+	return true;
+}
+bool pktdispatchendpoint::delTopic(std::string topic) {
+	if (topic.empty()) {
+        return false;
+    }
+    if(!myTopics.contains(topic)) {
+        std::cout << __PRETTY_FUNCTION__ << " Topic : " << topic << "doesn't exist" <<  std::endl;
+        return false;
+    }
+    myTopics.erase(topic);
+	return true;
+}
+void pktdispatchendpoint::printTopics() {
+	std::cout << __PRETTY_FUNCTION__ << " Topic List " << std::endl;
+	std::cout << std::setfill(' ') <<
+        std::setw(10) << "Topic" <<
+        std::setw(13) << "Created On" <<
+		std::endl;
+	std::cout << std::setfill('-') <<
+        std::setw(13) << "   " <<
+        std::setw(13) << "   " <<
+		setfill('\0') << std::endl;
+	for (auto &entry : myTopics) {
+		std::cout << std::setfill(' ') <<
+        std::setw(10) <<  entry.first <<
+        std::setw(2) << "" << std::setw(13) <<  entry.second  <<
+		setfill('\0') << std::endl;
+	}
+}
+std::vector<std::string> pktdispatchendpoint::getTopics() {
+	std::vector<std::string> list;
+	for (auto &entry : myTopics) {
+		list.push_back(entry.first);
+	}
+	return list;
+}
 bool pktdispatchendpoint::registerTopic(std::string topic) {
 	if (!pubEps.contains(topic)) {
 		std::tuple<std::string, endPoint *, int> *ep = getHealthyEndpoint(pubEndpoints);
@@ -84,6 +130,10 @@ bool pktdispatchendpoint::unregisterTopic(std::string topic) {
 	return true;
 }
 std::string pktdispatchendpoint::getPublisherEndpoint(std::string topic) {
+	if (topic.empty()) {
+        std::cout << "Invalid param" << std::endl;
+        std::abort();
+    }
 	std::string endpoint;
 	if (pubEps.contains(topic))
 	{
@@ -96,17 +146,29 @@ std::string pktdispatchendpoint::getPublisherEndpoint(std::string topic) {
 	return {};
 }
 std::string pktdispatchendpoint::getPublisherFQEndpoint(std::string topic) {
+	if (topic.empty()) {
+        std::cout << "Invalid param" << std::endl;
+        std::abort();
+    }
 	std::string endpoint = getPublisherEndpoint(topic);
-	std::string fqep;
-	std::vector<std::string> ss = spilt(endpoint, ':');
-	ss[1] = myAddress;
-	for (auto &s : ss) {
-		fqep += s;
+	if (!endpoint.empty()) {
+		std::string fqep;
+		std::vector<std::string> ss = spilt(endpoint, ':');
+		ss[0] = ss[0] + ":";
+        ss[1] = "//" + myAddress + ":";
+		for (auto &s : ss) {
+			fqep += s;
+		}
+		return fqep;
 	}
-	return fqep;
+	return {};
 }
 
 endPoint * pktdispatchendpoint::getPublisherConnection(std::string topic) {
+	if (topic.empty()) {
+        std::cout << "Invalid param" << std::endl;
+        std::abort();
+    }
 	endPoint *con = nullptr;
 	if (pubEps.contains(topic))
 	{
@@ -118,6 +180,10 @@ endPoint * pktdispatchendpoint::getPublisherConnection(std::string topic) {
 	return con;
 }
 std::string pktdispatchendpoint::getSubscriberEndpoint(std::string topic) {
+	if (topic.empty()) {
+        std::cout << "Invalid param" << std::endl;
+        std::abort();
+    }
 	std::string endpoint;
 	if (subEps.contains(topic))
 	{
@@ -130,16 +196,28 @@ std::string pktdispatchendpoint::getSubscriberEndpoint(std::string topic) {
 	return {};
 }
 std::string pktdispatchendpoint::getSubscriberFQEndpoint(std::string topic) {
-	std::string endpoint = getSubscriberEndpoint(topic);
-	std::string fqep;
-	std::vector<std::string> ss = spilt(endpoint, ':');
-	ss[1] = myAddress;
-	for (auto &s : ss) {
-		fqep += s;
+	if (topic.empty()) {
+		std::cout << "Invalid param" << std::endl;
+        std::abort();
 	}
-	return fqep;
+	std::string endpoint = getSubscriberEndpoint(topic);
+	if (!endpoint.empty()) {
+		std::string fqep;
+		std::vector<std::string> ss = spilt(endpoint, ':');
+		ss[0] = ss[0] + ":";
+		ss[1] = "//" + myAddress + ":";
+		for (auto &s : ss) {
+			fqep += s;
+		}
+		return fqep;
+	}
+	return {};
 }
 endPoint * pktdispatchendpoint::getSubscriberConnection(std::string topic) {
+	if (topic.empty()) {
+        std::cout << "Invalid param" << std::endl;
+        std::abort();
+    }
 	endPoint *con = nullptr;
 	if (subEps.contains(topic))
 	{
@@ -287,6 +365,20 @@ bool pktdispatchendpoint::addMgmtEndpoint(std::string endpoint) {
 	mgmtEndpoint = createEndpoint(endpoint, SERVER_RESP);
 	return true;
 }
+std::string pktdispatchendpoint::getMgmtFQEndpoint() {
+	std::string endpoint = std::get<0>(mgmtEndpoint);
+	if (!endpoint.empty()) {
+		std::string fqep;
+		std::vector<std::string> ss = spilt(endpoint, ':');
+		ss[0] = ss[0] + ":";
+        ss[1] = "//" + myAddress + ":";
+		for (auto &s : ss) {
+			fqep += s;
+	    }
+		return fqep;
+	}
+	return {};
+}
 endPoint *pktdispatchendpoint::getMgmtConnection() {
 	if (std::get<1>(mgmtEndpoint) != nullptr) {
 		return std::get<1>(mgmtEndpoint);
@@ -307,6 +399,20 @@ endPoint *pktdispatchendpoint::getAdvConnection() {
 		return std::get<1>(advEndpoint);
 	}
 	return nullptr;
+}
+std::string pktdispatchendpoint::getAdvFQEndpoint() {
+    std::string endpoint = std::get<0>(advEndpoint);
+	if (!endpoint.empty()) {
+		std::string fqep;
+		std::vector<std::string> ss = spilt(endpoint, ':');
+		ss[0] = ss[0] + ":";
+        ss[1] = "//" + myAddress + ":";
+		for (auto &s : ss) {
+			fqep += s;
+		}
+		return fqep;
+	}
+	return {};
 }
 void pktdispatchendpoint::cleanup() {
 	std::cout << "Cleaning up MEP : " << std::get<0>(mgmtEndpoint) << "CON: " << std::get<1>(mgmtEndpoint) << std::endl;

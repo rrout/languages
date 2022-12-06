@@ -47,7 +47,6 @@ typedef enum {
     STATUS_MAX
 }pktConfigStatus_t;
 
-
 inline std::string getHostName() {
     std::string name;
     struct addrinfo hints, *info, *p;
@@ -61,19 +60,16 @@ inline std::string getHostName() {
     hints.ai_family = AF_UNSPEC; /*either IPV4 or IPV6*/
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_CANONNAME;
-
     if ((gai_result = getaddrinfo(hostname, "http", &hints, &info)) != 0) {
             fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(gai_result));
                 exit(1);
     }
-
     for(p = info; p != NULL; p = p->ai_next) {
         if (name.empty()){
                 name = p->ai_canonname;
                 }
             printf("hostname: %s\n", p->ai_canonname);
     }
-
     freeaddrinfo(info);
     return name;
 
@@ -86,6 +82,18 @@ inline std::vector<std::string> spilt(std::string s, const char delim) {
         tokens.push_back(temp_str);
     }
     return tokens;
+}
+inline std::string dateTimeNow()
+{
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %X");
+    return ss.str();
+}
+inline bool validTopicName(std::string topicName) {
+	return topicName.starts_with(TOPIC_FORMAT_START);
 }
 
 #endif //__CONSTANTS_H__

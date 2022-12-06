@@ -216,7 +216,7 @@ std::string dispatchclient::getPubEndpoint(std::string topic) {
 	// Send REQ_TYPE_GET_PUB_ENDPOINT
     req.clear();
     resp.clear();
-    req.fillReq(REQ_TYPE_GET_PUB_ENDPOINT);
+    req.fillReq(REQ_TYPE_GET_PUB_ENDPOINT, topic);
     sendRequest(req, resp);
     // PROCESS Responce
     if (resp.getReqPart() == REQ_TYPE_RESPONCE &&
@@ -234,7 +234,7 @@ std::string dispatchclient::getSubEndpoint(std::string topic) {
     // Send REQ_TYPE_GET_SUB_ENDPOINT
     req.clear();
     resp.clear();
-    req.fillReq(REQ_TYPE_GET_SUB_ENDPOINT);
+    req.fillReq(REQ_TYPE_GET_SUB_ENDPOINT, topic);
     sendRequest(req, resp);
     // PROCESS Responce
     if (resp.getReqPart() == REQ_TYPE_RESPONCE &&
@@ -505,11 +505,11 @@ bool dispatchclient::subscribeRegister(std::string topic) {
         return true;
     }
 	connectionCkeckWait(10);
-	std::string subEndpoint;	
+	std::string subEndpoint;
     if (isConnected()) {
 		if (!subscriber.contains(topic)) {
 			subEndpoint = getSubEndpoint(topic);
-			std::cout << __PRETTY_FUNCTION__ << subEndpoint << std::endl; 
+			std::cout << __PRETTY_FUNCTION__ << subEndpoint << std::endl;
 			if(subEndpoint.empty()) {
 				std::cout << __PRETTY_FUNCTION__ <<
 					"No able to resolve subscriber connection" <<

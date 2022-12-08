@@ -1,10 +1,11 @@
 #include "hdr.h"
 #include "dispatchclient.h"
 #include "pktmessage.h"
+#include "logger.h"
 
 dispatchclient::dispatchclient(std::string endpoint) :
 	_endpoint(endpoint) {
-	std::cout << __PRETTY_FUNCTION__ << "Constructing" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "Constructing" << std::endl;
 	_name = genClientName();
 	_connRetry = 5;
 	start();
@@ -12,19 +13,19 @@ dispatchclient::dispatchclient(std::string endpoint) :
 }
 dispatchclient::dispatchclient(std::string name, std::string endpoint) :
 	_name(name), _endpoint(endpoint){
-	std::cout << __PRETTY_FUNCTION__ << "Constructing" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "Constructing" << std::endl;
 	_connRetry = 5;
 	start();
 }
 dispatchclient::~dispatchclient() {
-	std::cout << __PRETTY_FUNCTION__ << "Destructing" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "Destructing" << std::endl;
 }
 
 bool dispatchclient::sendRequest(pktmessage &req, pktmessage &res) {
 	bool ret = true;
 	req.print();
     if (!req.valid()) {
-        std::cout << __PRETTY_FUNCTION__ << "Invalid Request" << std::endl;
+        _INFO << __PRETTY_FUNCTION__ << "Invalid Request" << std::endl;
         ret = false;
     } else {
 		zmqpp::message request;
@@ -40,7 +41,7 @@ bool dispatchclient::sendRequest(pktmessage &req, pktmessage &res) {
 	return ret;
 }
 bool dispatchclient::connectNegotiation(int8_t retry) {
-	std::cout << __PRETTY_FUNCTION__ << "Connecting to " << _endpoint << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "Connecting to " << _endpoint << std::endl;
 	int8_t count = 0;
 	bool result = false;
 	while (count < retry) {
@@ -135,7 +136,7 @@ bool dispatchclient::connectNegotiation(int8_t retry) {
 }
 bool dispatchclient::priodicNegotiation() {
 	bool result = false;
-	std::cout << __PRETTY_FUNCTION__ << "Connection HEARTBEAT" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "Connection HEARTBEAT" << std::endl;
 	pktmessage req(_name);
     pktmessage resp;
 
@@ -159,8 +160,42 @@ bool dispatchclient::priodicNegotiation() {
 	result = true;
 	return result;
 }
+
+bool dispatchclient::connectionRetry() {
+	std::string advEndpoint = _advendpoint;
+	bool conected  = connectNegotiation(1);
+	if (conected != _connected) {
+		_CRETICAL << "Connection is changing ( " << _connected << " --> " << conected << ")" << std::endl;
+		_connected = conected;
+	}
+	if (isConnected() && (advEndpoint != _advendpoint)) {
+		_CRETICAL << "Adv endpoint is changing ( " << advEndpoint << " --> " << _advendpoint << ")" << std::endl;
+	}
+	for (auto &pub : publisher) {
+		publishRegister(pub.first);
+	}
+	for (auto &sub : subscriber) {
+        subscribeRegister(sub.first);
+    }
+
+	return true;
+}
+
+bool dispatchclient::processAdv(pktmessage &adv) {
+	adv.print();
+	if (adv.valid()) {
+		std::string advTopic = adv.getTopicPart();
+		std::string content0 = adv.getContent(0);
+		if (advTopic == TOPIC_SERVER_BROADCAST && content0 == TOPIC_CMD_SREVER_REQ_RECONNECTION) {
+			connectionRetry();
+		}
+
+	}
+	return true;
+}
+
 bool dispatchclient::connectProcessing(std::string endpoint) {
-	std::cout << __PRETTY_FUNCTION__ << "Connection Procssing : " << endpoint << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "Connection Procssing : " << endpoint << std::endl;
 	if (_connnection == nullptr) {
 		zmqpp::context context;
 		_socktype = zmqpp::socket_type::request;
@@ -173,7 +208,7 @@ bool dispatchclient::connectProcessing(std::string endpoint) {
 	std::condition_variable hb_cond;
 	std::mutex mtx;
 	while (1) {
-		std::cout << __PRETTY_FUNCTION__ << "** MGMT **" << std::endl;
+		_INFO << __PRETTY_FUNCTION__ << "** MGMT **" << std::endl;
 		if (!isConnected()) {
 			_connected = connectNegotiation(_connRetry);
 		} else {
@@ -183,7 +218,7 @@ bool dispatchclient::connectProcessing(std::string endpoint) {
 		std::unique_lock<std::mutex> lck(mtx);
 		auto res = hb_cond.wait_until(lck, timeout);
 		if (res == std::cv_status::timeout) {
-			std::cout << __PRETTY_FUNCTION__ << "Connection Procssing" << std::endl;
+			_INFO << __PRETTY_FUNCTION__ << "Connection Procssing" << std::endl;
 		}
 	}
 	return true;
@@ -199,11 +234,12 @@ void dispatchclient::advProcessing() {
 				_advcon = new zmqpp::socket(_context, socktype);
 				_advcon->connect(_advendpoint);
 				_advcon->subscribe(_name);
+				_advcon->subscribe(TOPIC_SERVER_BROADCAST);
 			} else {
 				zmqpp::message reply;
 				_advcon->receive(reply);
 				pktmessage resp(reply);
-				resp.print();
+				processAdv(resp);
 			}
 		} else {
 			std::this_thread::sleep_for(std::chrono::milliseconds(10000));
@@ -314,8 +350,16 @@ void dispatchclient::print() {
 	std::cout << "Server Address    : " << _endpoint << std::endl;
 	std::cout << "Connected         : " << isConnected() << std::endl;
 	std::cout << "Ready             : " << isReady() << std::endl;
-	std::cout << "Publishing Topic  : " << std::endl;
-	std::cout << "Subscribing Topic : " << std::endl;
+	std::cout << "Publishing Topic  : " << publisher.size() << std::endl;
+	for (auto &p : publisher) {
+		std::cout << p.first << " ";
+	}
+	std::cout << std::endl;
+	std::cout << "Subscribing Topic : " << subscriber.size() << std::endl;
+	for (auto &s : subscriber) {
+		std::cout << s.first << " ";
+	}
+	std::cout << std::endl;
 	std::cout << "Publisher Snapsort: " << std::endl;
 	p_lock.lock();
 	for (auto &pub : publisher) {
@@ -343,25 +387,25 @@ bool dispatchclient::start() {
 
 	//Wait for all helper theread to start
 	while(1) {
-		std::cout << __PRETTY_FUNCTION__ << "Waiting " << threadready << std::endl;
+		_INFO << __PRETTY_FUNCTION__ << "Waiting " << std::endl;
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		break;
 	}
-	std::cout << __PRETTY_FUNCTION__ << "All thread started......." << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "All thread started......." << std::endl;
 	return true;
 }
 void dispatchclient::connectionCkeckWait(int8_t timeout) {
-	std::cout << __PRETTY_FUNCTION__ << "================*****=============" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "================*****=============" << std::endl;
 	std::condition_variable wait_cond;
 	std::mutex wait_mtx;
 	std::unique_lock<std::mutex> lck(wait_mtx);
 	wait_cond.wait_for(lck,std::chrono::seconds(timeout), std::bind(&dispatchclient::isConnected, this));
-	std::cout << __PRETTY_FUNCTION__ << "================================" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "================================" << std::endl;
 
 }
 bool dispatchclient::publishRegister(std::string topic) {
 	if (publisher.contains(topic)) {
-		std::cout << __PRETTY_FUNCTION__ <<
+		_INFO << __PRETTY_FUNCTION__ <<
 			"topic :" << topic <<
 			" Already registered" <<
 			std::endl;
@@ -372,9 +416,9 @@ bool dispatchclient::publishRegister(std::string topic) {
 	if (isConnected()) {
 		if (!publisher.contains(topic)) {
 			pubEndpoint = getPubEndpoint(topic);
-			std::cout << __PRETTY_FUNCTION__ << pubEndpoint << std::endl;
+			_INFO << __PRETTY_FUNCTION__ << pubEndpoint << std::endl;
 			if(pubEndpoint.empty()) {
-				std::cout << __PRETTY_FUNCTION__ <<
+				_INFO << __PRETTY_FUNCTION__ <<
 				"No able to resolve publisher connection" <<
 				" Topic : " <<
 				topic <<
@@ -383,7 +427,7 @@ bool dispatchclient::publishRegister(std::string topic) {
 			}
 
 			if (registerTopicWithServer(DISPATCH_CLIENT_ROLE_PUBLISHER, topic) == false) {
-				std::cout << __PRETTY_FUNCTION__ <<
+				_INFO << __PRETTY_FUNCTION__ <<
 					"Topic registration failed with server : " <<
 					topic <<
 					std::endl;
@@ -400,15 +444,15 @@ bool dispatchclient::publishRegister(std::string topic) {
 				con->connect(pubEndpoint);
 
 				std::lock_guard<std::mutex> lock(p_lock);
-				publisher[topic] = new dispatchclientpub(topic);
+				publisher[topic] = new dispatchclientpub(topic, _name);
 				publisher[topic]->registr(_endpoint, con);
 			} else {
-				std::cout << __PRETTY_FUNCTION__ <<
+				_CRETICAL << __PRETTY_FUNCTION__ <<
 					"Alloc fail " <<
 					std::endl;
 			}
 		} else {
-			std::cout << __PRETTY_FUNCTION__ <<
+			_INFO << __PRETTY_FUNCTION__ <<
 				"Publisher exists  " <<
 				topic <<
 				std::endl;
@@ -416,7 +460,7 @@ bool dispatchclient::publishRegister(std::string topic) {
 		}
 		//TODO
 	} else {
-		std::cout << __PRETTY_FUNCTION__ <<
+		_INFO << __PRETTY_FUNCTION__ <<
 			"Client is not connected" <<
 			" Topic : " <<
 			topic <<
@@ -427,7 +471,7 @@ bool dispatchclient::publishRegister(std::string topic) {
 }
 bool dispatchclient::publish(std::string topic, std::string msg) {
 	if (!publisher.contains(topic)) {
-		std::cout << __PRETTY_FUNCTION__ <<
+		_INFO << __PRETTY_FUNCTION__ <<
 			"topic :" << topic <<
 			" not registered" <<
 			std::endl;
@@ -437,7 +481,7 @@ bool dispatchclient::publish(std::string topic, std::string msg) {
 		 publisher[topic]->publish(topic, msg);
 		 publishProcessingNotify();
 	} else {
-		std::cout << __PRETTY_FUNCTION__ << "Client is not connected" <<
+		_INFO << __PRETTY_FUNCTION__ << "Client is not connected" <<
 			std::endl;
 		return false;
 	}
@@ -445,7 +489,7 @@ bool dispatchclient::publish(std::string topic, std::string msg) {
 }
 bool dispatchclient::publish(std::string topic, std::vector<std::string> msg) {
 	if (publisher.contains(topic)) {
-        std::cout << __PRETTY_FUNCTION__ <<
+        _INFO << __PRETTY_FUNCTION__ <<
             "topic :" << topic <<
             " not registered" <<
             std::endl;
@@ -455,7 +499,7 @@ bool dispatchclient::publish(std::string topic, std::vector<std::string> msg) {
          publisher[topic]->publish(topic, msg);
 		 publishProcessingNotify();
     } else {
-        std::cout << __PRETTY_FUNCTION__ << "Client is not connected" <<
+        _INFO << __PRETTY_FUNCTION__ << "Client is not connected" <<
             std::endl;
         return false;
     }
@@ -468,10 +512,10 @@ void dispatchclient::publishProcessing() {
 		//p_cond.wait(lock, std::bind(&dispatchclient::reqDestroy, this));
 		//p_cond.wait(lock,[this]() { return reqDestroy(); });
 		p_cond.wait(lock);
-		std::cout << __PRETTY_FUNCTION__ << "Notify Recieved" << std::endl;
+		_INFO << __PRETTY_FUNCTION__ << "Notify Recieved" << std::endl;
 		//TODO
 		if (reqDestroy() == true) {
-			std::cout << __PRETTY_FUNCTION__ << "Exit" << std::endl;
+			_INFO << __PRETTY_FUNCTION__ << "Exit" << std::endl;
 			break;
 		}
 		for (auto &pub : publisher) {
@@ -484,7 +528,7 @@ bool dispatchclient::reqDestroy() {
 	return _reqdestroy;
 }
 void dispatchclient::publishProcessingNotify() {
-	std::cout << __PRETTY_FUNCTION__ << "Notify" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "Notify" << std::endl;
 	p_cond.notify_one();
 }
 bool dispatchclient::isPublishProcessingRequired() {
@@ -498,7 +542,7 @@ bool dispatchclient::isPublishProcessingRequired() {
 }
 bool dispatchclient::subscribeRegister(std::string topic) {
 	if (subscriber.contains(topic)) {
-        std::cout << __PRETTY_FUNCTION__ <<
+        _INFO << __PRETTY_FUNCTION__ <<
             "topic :" << topic <<
             " Already registered" <<
             std::endl;
@@ -509,9 +553,9 @@ bool dispatchclient::subscribeRegister(std::string topic) {
     if (isConnected()) {
 		if (!subscriber.contains(topic)) {
 			subEndpoint = getSubEndpoint(topic);
-			std::cout << __PRETTY_FUNCTION__ << subEndpoint << std::endl;
+			_INFO << __PRETTY_FUNCTION__ << subEndpoint << std::endl;
 			if(subEndpoint.empty()) {
-				std::cout << __PRETTY_FUNCTION__ <<
+				_INFO << __PRETTY_FUNCTION__ <<
 					"No able to resolve subscriber connection" <<
 					" Topic : " <<
 					topic <<
@@ -519,7 +563,7 @@ bool dispatchclient::subscribeRegister(std::string topic) {
 				return false;
 			}
 			if (registerTopicWithServer(DISPATCH_CLIENT_ROLE_SUBSCRIBER, topic) == false) {
-				std::cout << __PRETTY_FUNCTION__ <<
+				_INFO << __PRETTY_FUNCTION__ <<
 					"Topic registration failed with server : " <<
 					topic <<
 					std::endl;
@@ -538,20 +582,20 @@ bool dispatchclient::subscribeRegister(std::string topic) {
 				subscriber[topic] = new dispatchclientsub(topic);
 				subscriber[topic]->registr(subEndpoint, con);
 			} else {
-				std::cout << __PRETTY_FUNCTION__ <<
+				_INFO << __PRETTY_FUNCTION__ <<
 					"Alloc fail " <<
 					std::endl;
 				return false;
 			}
 		} else {
-			std::cout << __PRETTY_FUNCTION__ <<
+			_INFO << __PRETTY_FUNCTION__ <<
 				"Subscriber exists  " <<
 				topic <<
 				std::endl;
 			return true;
 		}
     } else {
-        std::cout << __PRETTY_FUNCTION__ << "Client is not connected" <<
+        _INFO << __PRETTY_FUNCTION__ << "Client is not connected" <<
             std::endl;
         return false;
     }
@@ -559,7 +603,7 @@ bool dispatchclient::subscribeRegister(std::string topic) {
 }
 bool dispatchclient::subscribe(std::string topic, std::function<void(std::string, std::vector<std::string>)> callback) {
 	if (!subscriber.contains(topic)) {
-		std::cout << __PRETTY_FUNCTION__ <<
+		_INFO << __PRETTY_FUNCTION__ <<
 			 "topic :" << topic <<
 			" not registered" <<
 			std::endl;
@@ -568,7 +612,7 @@ bool dispatchclient::subscribe(std::string topic, std::function<void(std::string
 	if (isConnected()) {
 		subscriber[topic]->subscribe(callback);
 	} else {
-		std::cout << __PRETTY_FUNCTION__ << "Client is not connected" <<
+		_INFO << __PRETTY_FUNCTION__ << "Client is not connected" <<
 			std::endl;
 		return false;
 	}

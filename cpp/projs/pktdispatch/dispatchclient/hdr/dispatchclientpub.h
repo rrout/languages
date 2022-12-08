@@ -17,7 +17,7 @@ class dispatchclientpub {
 	public:
 		dispatchclientpub() = delete;
 		dispatchclientpub(std::string topic);
-		dispatchclientpub(std::string topic, std::string endpoint);
+		dispatchclientpub(std::string topic, std::string name);
 		~dispatchclientpub();
 		void print();
 		int getBuffCount();

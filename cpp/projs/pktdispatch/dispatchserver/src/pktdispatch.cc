@@ -5,6 +5,7 @@
 #include "pktdispatchconfig.h"
 #include "pktpublisher.h"
 #include "pktmessage.h"
+#include "logger.h"
 
 pktdispatch::pktdispatch() {
 	std::cout << __PRETTY_FUNCTION__ << ":" << "Constructing Object" << std::endl;
@@ -66,16 +67,15 @@ void pktdispatch::infoPublishPoller() {
 	while(1) {
 		std::cout << __PRETTY_FUNCTION__ << __LINE__ << "ADV THREAD" << std::endl;
 		std::string self = inst->endpoints.getName();
-		pktmessage req(self);
 		std::vector<std::string> msg;
-		msg.push_back("PERIODIC HELLO FROM" + self);
+		msg.push_back("PERIODIC HELLO FROM " + self);
+		sendPeriodicAdv(msg);
 
 		for (auto &tentry : inst->publisher) {
 			std::cout << __PRETTY_FUNCTION__ << "Adv processing Topic : " << tentry.first << std::endl;
 			for (auto &list : tentry.second->pubEntryList) {
 				std::cout << __PRETTY_FUNCTION__ << "Adv processing Client : " << list.first << std::endl;
-				sendAdv(tentry.first, req);
-				sendPeriodicAdv(list.first, msg);
+				sendAdv(list.first, msg);
 			}
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(ADV_INT_MILISEC));
@@ -201,7 +201,7 @@ void pktdispatch::sendAdv(std::string clientOrTopic, pktmessage &msg) {
         }
 	}
 }
-void pktdispatch::sendPeriodicAdv(std::string clientOrTopic, std::vector<std::string> &msg) {
+void pktdispatch::sendAdv(std::string clientOrTopic, std::vector<std::string> &msg) {
     pktdispatchconfig *inst = pktdispatchconfig::getInstance();
     endPoint *endpoint = inst->endpoints.getAdvConnection();
 	std::string self = inst->endpoints.getName();
@@ -215,6 +215,24 @@ void pktdispatch::sendPeriodicAdv(std::string clientOrTopic, std::vector<std::st
         }
     }
 }
+
+void pktdispatch::sendPeriodicAdv(std::vector<std::string> &msg) {
+	pktdispatchconfig *inst = pktdispatchconfig::getInstance();
+	endPoint *endpoint = inst->endpoints.getAdvConnection();
+    std::string self = inst->endpoints.getName();
+	if (msg.empty() ) {
+		_CRETICAL << "Invalid msg" <<std::endl;
+		std::abort();
+	}
+	pktmessage message(self);
+	message.fillTopic(TOPIC_SERVER_BROADCAST, TOPIC_CONTENT_PLANE_TEXT, msg);
+	if (endpoint) {
+		endpoint->send(message);
+	} else {
+		_CRETICAL << "NULL connection" <<std::endl;
+	}
+}
+
 void pktdispatch::startProcessing() {
 	std::cout << __PRETTY_FUNCTION__ << ":" << "--- START PROCESSING ---" << std::endl;
 	std::cout << __PRETTY_FUNCTION__ << ":" << "pubDataPollerThread" << std::endl;

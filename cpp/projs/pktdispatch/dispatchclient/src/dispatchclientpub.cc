@@ -1,10 +1,11 @@
 #include "hdr.h"
 #include "dispatchclientpub.h"
 #include "pktmessage.h"
+#include "logger.h"
 
 
 dispatchclientpub::dispatchclientpub(std::string topic) {
-	std::cout << __PRETTY_FUNCTION__ << "Constructing" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "Constructing" << std::endl;
 	_topic = topic;
 	_publishCount = 0;
 	_buffCount = 0;
@@ -12,9 +13,20 @@ dispatchclientpub::dispatchclientpub(std::string topic) {
 	_maxBatchSendCount = 10;
 	_registered = false;
 }
+dispatchclientpub::dispatchclientpub(std::string topic, std::string name) {
+	_INFO << __PRETTY_FUNCTION__ << "Constructing" << std::endl;
+	_name = name;
+    _topic = topic;
+    _publishCount = 0;
+    _buffCount = 0;
+    _maxBuffCount = 10;
+    _maxBatchSendCount = 10;
+    _registered = false;
+
+}
 
 dispatchclientpub::~dispatchclientpub() {
-	std::cout << __PRETTY_FUNCTION__ << "Destroying" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "Destroying" << std::endl;
 }
 
 void dispatchclientpub::print() {
@@ -38,7 +50,7 @@ bool dispatchclientpub::registr(std::string endpoint, zmqpp::socket *con) {
 		_endpoint = endpoint;
 		_con = con;
 	} else {
-		std::cout << __PRETTY_FUNCTION__ << "Alredy Connected" << std::endl;
+		_INFO << __PRETTY_FUNCTION__ << "Alredy Connected" << std::endl;
 		return false;
 	}
 	_registered = true;
@@ -52,7 +64,7 @@ void dispatchclientpub::registration(bool status) {
 }
 bool dispatchclientpub::publish(std::string topic, std::string msg) {
 	if (getBuffCount() >= _maxBuffCount) {
-		std::cout << __PRETTY_FUNCTION__ <<
+		_INFO << __PRETTY_FUNCTION__ <<
 			"Buffer not available" <<
 			std::endl;
 		return false;
@@ -66,7 +78,7 @@ bool dispatchclientpub::publish(std::string topic, std::string msg) {
 }
 bool dispatchclientpub::publish(std::string topic, std::vector<std::string> msg) {
 	if (getBuffCount() >= _maxBuffCount) {
-		std::cout << __PRETTY_FUNCTION__ <<
+		_INFO << __PRETTY_FUNCTION__ <<
 			"Buffer not available" <<
 			std::endl;
 		return false;
@@ -79,7 +91,7 @@ bool dispatchclientpub::publish(std::string topic, std::vector<std::string> msg)
 }
 bool dispatchclientpub::send(std::vector<std::string> &msg) {
 	if (msg.empty()) {
-		std::cout << __PRETTY_FUNCTION__ <<
+		_INFO << __PRETTY_FUNCTION__ <<
 			"Invalid message to send" <<
 			" DISCARDING SEND" <<
 			std::endl;
@@ -95,9 +107,9 @@ bool dispatchclientpub::send(std::vector<std::string> &msg) {
 		message.compose(req);
 		_con->send(req);
 		_publishCount++;
-		std::cout << __PRETTY_FUNCTION__ << " REAL SEND " << std::endl;
+		_INFO << __PRETTY_FUNCTION__ << " REAL SEND " << std::endl;
     } else {
-		std::cout << __PRETTY_FUNCTION__ << " REAL SEND FAIL" << std::endl;
+		_INFO << __PRETTY_FUNCTION__ << " REAL SEND FAIL" << std::endl;
 		return false;
 	}
 	return true;
@@ -105,7 +117,7 @@ bool dispatchclientpub::send(std::vector<std::string> &msg) {
 bool dispatchclientpub::processSend() {
 	std::lock_guard<std::mutex> lock(_buffLock);
 	int count = 0;
-	std::cout << __PRETTY_FUNCTION__ <<
+	_INFO << __PRETTY_FUNCTION__ <<
 		"Topic : " << _topic <<
 		" Publish processing" <<
 		std::endl;

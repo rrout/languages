@@ -4,9 +4,17 @@
 #include <sstream>
 #include <iomanip>
 
+#ifndef __LOGGER_H__
+#define __LOGGER_H__
+
 class logger;
 extern logger gLog;
-#define INIT_LOGGING_SYSTEM	logger gLog
+
+#define LOGGING_SYSTEM_INIT	logger gLog
+#define LOGGING_SYSTEM_INIT_WITH_LOGFILE(logfile)	logger gLog(logfile)
+
+#define LOGGING_SYSTEM_FILE(file) gLog.logfile = file
+
 #define GLOG(gLog)			(gLog << gLog.header( __FILE__ , __LINE__ , __FUNCTION__))
 #define GLOG_L(gLog, level)	gLog.setcurrlevel(level); \
 									gLog << gLog.header( __FILE__ , __LINE__ , __FUNCTION__)
@@ -48,6 +56,18 @@ class logger {
 			}
 			active = true;
 		}
+		logger(std::string file) {
+            consolelog = true;
+            filelog = true;
+            logfile = file;
+            logheader = true;
+            loglevel = LOGINFO | LOGERR | LOGDEBUG | LOGCRITICAL | LOGPANIC;
+            this->ofs.open(logfile);
+            if(!this->ofs.is_open()) {
+                std::cout << "Unable to open " << logfile << std::endl;
+            }
+            active = true;
+        }
 		~logger() {
 			this->ofs.close();
 		}
@@ -137,3 +157,5 @@ class logger {
 			return FormatTime(std::chrono::system_clock::now());
 		}
 };
+
+#endif //__LOGGER_H__

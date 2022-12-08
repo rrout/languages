@@ -96,6 +96,22 @@ std::string pktmessage::getPart(int idx) {
     }
 	return _msgBody[idx];
 }
+
+
+std::string pktmessage::getTopicPart() {
+	return getPart(TOPIC_MSG_FIELD_TOPIC);
+}
+std::string pktmessage::getTopicPnamePart() {
+	return getPart(TOPIC_MSG_FIELD_PNAME);
+}
+std::string pktmessage::getTopicPidPart() {
+	return getPart(TOPIC_MSG_FIELD_PID);
+}
+std::string pktmessage::getTopicAdonPart() {
+	return getPart(TOPIC_MSG_FIELD_EXTINFO);
+}
+
+
 std::string pktmessage::getReqPart() {
 	return getPart(REQRESP_MSG_FIELD_REQ);
 }
@@ -110,7 +126,13 @@ std::string pktmessage::getIdIPart() {
 }
 int pktmessage::getContentSize() {
 	std::string count = getPart(REQRESP_MSG_FIELD_PARTCOUNT);
-	return stoi(count);
+	try {
+		return stoi(count);
+	} catch (...) {
+		std::cout << "WRONG MSG" << std::endl;
+		return 0;
+	}
+	return 0;
 }
 std::string pktmessage::getContent(int index) {
 	return getPart(REQRESP_MSG_FIELD_TEXT + index);
@@ -265,7 +287,11 @@ bool pktmessage::validReqRespMsg(std::vector<std::string> &reqRespMsg) {
 bool pktmessage::validTopicMsg(std::vector<std::string> &topicMsg) {
 	if (topicMsg.size() == 0) {
 		return false;
-	} else if (topicMsg.size() < 5) {
+	} else if (topicMsg.size() < 6) {
+		return false;
+	} else if (!topicMsg[TOPIC_MSG_FIELD_TOPIC].starts_with(TOPIC_FORMAT_START)) {
+		return false;
+	} else if (!isTopicContentValid(topicMsg[TOPIC_MSG_FIELD_EXTINFO])) {
 		return false;
 	} else {
 		return true;

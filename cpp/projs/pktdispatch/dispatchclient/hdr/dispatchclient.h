@@ -31,9 +31,11 @@ class dispatchclient {
 	protected:
 		std::string genClientName();
 		bool connectNegotiation(int8_t retry);
+		bool connectionRetry();
 		bool priodicNegotiation();
 		bool connectProcessing(std::string endpoint);
 		bool sendRequest(pktmessage &req, pktmessage &res);
+		bool processAdv(pktmessage &adv);
 		std::string getPubEndpoint(std::string topic);
 		std::string getSubEndpoint(std::string topic);
 		bool registerTopicWithServer(client_role_t role, std::string topic);

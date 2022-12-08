@@ -21,8 +21,7 @@
 #define ERR_INT_SEC						60
 #define ERR_INT_MILISEC					(ERR_INT_SEC * 1000)
 
-#define TOPIC_FORMAT_START				"TOPIC-"
-
+#define TOPIC_FORMAT_START              "TOPIC-"
 
 typedef enum {
     PUSH,

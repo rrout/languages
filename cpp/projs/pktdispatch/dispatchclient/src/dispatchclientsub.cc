@@ -1,9 +1,10 @@
 #include "hdr.h"
 #include "dispatchclientsub.h"
 #include "pktmessage.h"
+#include "logger.h"
 
 dispatchclientsub::dispatchclientsub(std::string topic) {
-	std::cout << __PRETTY_FUNCTION__ << "Constructing" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "Constructing" << std::endl;
 	_topic = topic;
 	_registered = false;
 	_recvCount = 0;
@@ -29,7 +30,7 @@ bool dispatchclientsub::registr(std::string endpoint, zmqpp::socket *connection)
 		registration(true);
 		ret = true;
 	} else {
-		std::cout << __PRETTY_FUNCTION__ <<
+		_INFO << __PRETTY_FUNCTION__ <<
 			"Already registerd with " <<
 			_endpoint << std::endl;
 		ret = false;
@@ -55,7 +56,7 @@ bool dispatchclientsub::subscribe(Callback callback) {
 	//_callback = std::move(callback);
 	//_callback = std::bind(callback, std::placeholders::_1, std::placeholders::_2);
 	if (_callback) {
-		std::cout << __PRETTY_FUNCTION__ <<
+		_INFO << __PRETTY_FUNCTION__ <<
 			"Updating callback with new one topic : " <<
 			_topic << std::endl;
 	}
@@ -63,10 +64,10 @@ bool dispatchclientsub::subscribe(Callback callback) {
 	return true;
 }
 void dispatchclientsub::processRecieve() {
-	std::cout << __PRETTY_FUNCTION__ <<
+	_INFO << __PRETTY_FUNCTION__ <<
 		" Started for  Topic : -----------------------" <<
 		_topic << std::endl;
-	std::cout << __PRETTY_FUNCTION__ << "SUBSCRIBING TOPIC : " <<
+	_INFO << __PRETTY_FUNCTION__ << "SUBSCRIBING TOPIC : " <<
 		_topic << std::endl;
 	_con->subscribe(_topic);
 	while(1) {
@@ -80,7 +81,7 @@ void dispatchclientsub::processRecieve() {
 		pktmessage message(reply);
 		message.printPretty();
 		if (!message.valid()) {
-			std::cout << __PRETTY_FUNCTION__ << "Invalid Msg Discarding" << std::endl;
+			_INFO << __PRETTY_FUNCTION__ << "Invalid Msg Discarding" << std::endl;
 			continue;
 		}
 
@@ -101,14 +102,14 @@ void dispatchclientsub::processRecieve() {
 	}
 }
 void dispatchclientsub::processCallbacks() {
-	std::cout << __PRETTY_FUNCTION__ <<
+	_INFO << __PRETTY_FUNCTION__ <<
 		" Started for  Topic : --------------" <<
 		_topic << std::endl;
 	while(1) {
 		//std::unique_lock<std::mutex> lock(s_cond_lock);
 		std::unique_lock<std::mutex> lock(_lock);
 		s_cond.wait(lock);
-		std::cout << __PRETTY_FUNCTION__ << "Notify Recieved" << std::endl;
+		_INFO << __PRETTY_FUNCTION__ << "Notify Recieved" << std::endl;
 		while (_buffer.empty() == false) {
 			int sendIdx = 0;
 			dispatchCallback(_buffer[sendIdx]);
@@ -119,7 +120,7 @@ void dispatchclientsub::processCallbacks() {
 	}
 }
 void dispatchclientsub::processCallbacksNotify() {
-	std::cout << __PRETTY_FUNCTION__ << "Notify" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << "Notify" << std::endl;
 	s_cond.notify_one();
 }
 bool dispatchclientsub::dispatchCallback(std::vector<std::string> msg) {

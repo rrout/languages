@@ -4,6 +4,9 @@
 #include "pktdispatchconfig.h"
 #include "pktpublisher.h"
 #include "pktsubscriber.h"
+#include "logger.h"
+
+LOGGING_SYSTEM_INIT_WITH_LOGFILE("server.log");
 
 int main() {
 #if 1

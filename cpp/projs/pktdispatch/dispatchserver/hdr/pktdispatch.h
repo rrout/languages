@@ -16,7 +16,8 @@ class pktdispatch {
 		void maintainanceEngiene();
 		bool processRqust(pktmessage &req, pktmessage &res);
 		void sendAdv(std::string clientOrTopic, pktmessage &msg);
-		void sendPeriodicAdv(std::string clientOrTopic, std::vector<std::string> &msg);
+		void sendAdv(std::string clientOrTopic, std::vector<std::string> &msg);
+		void sendPeriodicAdv(std::vector<std::string> &msg);
 		void startProcessing();
 };
 

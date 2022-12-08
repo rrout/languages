@@ -26,10 +26,17 @@ class pktmessage {
 		void printPretty();
 		std::string getmsgfield(int field);
 		std::string getPart(int idx);
+
+		std::string getTopicPart();
+		std::string getTopicPnamePart();
+		std::string getTopicPidPart();
+		std::string getTopicAdonPart();
+
 		std::string getReqPart();
 		std::string getRespPart();
 		std::string getNamePart();
 		std::string getIdIPart();
+
 		int getContentSize();
 		std::string getContent(int index);
 
@@ -131,7 +138,9 @@ inline bool isRespTypeValid(std::string respType)  {
 #define TOPIC_MSG_FIELD_PARTCOUNT		 4
 #define TOPIC_MSG_FIELD_CONTENT          5
 
+#define TOPIC_FORMAT_START              "TOPIC-"
 
+#define TOPIC_SERVER_BROADCAST			"TOPIC-SERVER-ADVERTISE"
 #define PD_TOPIC_0_TOPIC_A              "TOPIC-A"
 #define PD_TOPIC_1_TOPIC_B              "TOPIC-B"
 #define PD_TOPIC_2_TOPIC_C              "TOPIC-C"
@@ -141,6 +150,8 @@ inline bool isRespTypeValid(std::string respType)  {
 #define PD_TOPIC_6_TOPIC_G              "TOPIC-G"
 #define PD_TOPIC_7_TOPIC_H              "TOPIC-H"
 #define PD_TOPIC_8_TOPIC_I              "TOPIC-I"
+
+#define TOPIC_CMD_SREVER_REQ_RECONNECTION		"TOPIC-SERVER-CMD-RECON"
 
 
 #define TOPIC_CONTENT_PLANE_TEXT				"TOPIC_CONTENT_PLANE_TEXT"

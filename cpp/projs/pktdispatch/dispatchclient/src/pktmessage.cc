@@ -1,12 +1,13 @@
 #include "hdr.h"
 #include "pktmessage.h"
+#include "logger.h"
 
 pktmessage::pktmessage() {
-	std::cout << __PRETTY_FUNCTION__ << ":" << "Const Def Object" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << ":" << "Const Def Object" << std::endl;
 	_msgType = MSG_TYPE_INVALID;
 }
 pktmessage::pktmessage(std::string myname) {
-	std::cout << __PRETTY_FUNCTION__ << ":" << "Const Object" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << ":" << "Const Object" << std::endl;
 	_msgType = MSG_TYPE_INVALID;
 	_myname = myname;
 }
@@ -24,7 +25,7 @@ pktmessage::pktmessage(zmqpp::message &msg) {
 	setMsgType();
 }
 pktmessage::~pktmessage() {
-	std::cout << __PRETTY_FUNCTION__ << ":" << "Destructing Object" << std::endl;
+	_INFO << __PRETTY_FUNCTION__ << ":" << "Destructing Object" << std::endl;
 }
 
 void pktmessage::setMsgType() {
@@ -96,6 +97,22 @@ std::string pktmessage::getPart(int idx) {
     }
 	return _msgBody[idx];
 }
+
+
+std::string pktmessage::getTopicPart() {
+	return getPart(TOPIC_MSG_FIELD_TOPIC);
+}
+std::string pktmessage::getTopicPnamePart() {
+	return getPart(TOPIC_MSG_FIELD_PNAME);
+}
+std::string pktmessage::getTopicPidPart() {
+	return getPart(TOPIC_MSG_FIELD_PID);
+}
+std::string pktmessage::getTopicAdonPart() {
+	return getPart(TOPIC_MSG_FIELD_EXTINFO);
+}
+
+
 std::string pktmessage::getReqPart() {
 	return getPart(REQRESP_MSG_FIELD_REQ);
 }
@@ -113,7 +130,7 @@ int pktmessage::getContentSize() {
 	try {
 		return stoi(count);
 	} catch (...) {
-		std::cout << "WRONG MSG" << std::endl;
+		_INFO << "WRONG MSG" << std::endl;
 		return 0;
 	}
 	return 0;
@@ -162,20 +179,20 @@ std::string pktmessage::getMsgTypeStr() {
 }
 void pktmessage::print() {
 	int count = 0;
-	std::cout << "-------------------" << std::endl;
-	std::cout << "Msg owner    : " << _myname << std::endl;
-	std::cout << "Msg id       : " << _myPid << std::endl;
-	std::cout << "Msg type     : " << getMsgType() << std::endl;
-	std::cout << "Msg body Size: " << _msgBody.size() << std::endl;
-	std::cout << "Msg copied   : " << _filled << std::endl;
-	std::cout << "Msg const    : " << _constructed << std::endl;
-	std::cout << "Valid        : " << (valid() ? "Yes" : "No") << std::endl;
-	std::cout << "-------------------" << std::endl;
+	_INFO << "-------------------" << std::endl;
+	_INFO << "Msg owner    : " << _myname << std::endl;
+	_INFO << "Msg id       : " << _myPid << std::endl;
+	_INFO << "Msg type     : " << getMsgType() << std::endl;
+	_INFO << "Msg body Size: " << _msgBody.size() << std::endl;
+	_INFO << "Msg copied   : " << _filled << std::endl;
+	_INFO << "Msg const    : " << _constructed << std::endl;
+	_INFO << "Valid        : " << (valid() ? "Yes" : "No") << std::endl;
+	_INFO << "-------------------" << std::endl;
 	for (auto &a : _msgBody) {
-		std::cout << count << " | " << a << std::endl;
+		_INFO << count << " | " << a << std::endl;
 		count++;
 	}
-	std::cout << "-------------------" << std::endl;
+	_INFO << "-------------------" << std::endl;
 	printPretty();
 }
 void pktmessage::printPretty() {
@@ -188,7 +205,7 @@ void pktmessage::printPretty() {
 		status = getReqPart();
 	}
 
-	std::cout << std::setfill(' ') <<
+	_INFO << std::setfill(' ') <<
 		std::setw(11) << "Owner" <<
 		std::setw(11) << "id" <<
 		std::setw(11) << "Type" <<
@@ -197,7 +214,7 @@ void pktmessage::printPretty() {
 		std::setw(31) << "Status" <<
 		std::setw(31) << "Content" <<
 		std::endl;
-	std::cout << std::setfill('-') <<
+	_INFO << std::setfill('-') <<
 		std::setw(11) << " " <<
 		std::setw(12) << " " <<
 		std::setw(11) << " " <<
@@ -206,7 +223,7 @@ void pktmessage::printPretty() {
 		std::setw(31) << " " <<
 		std::setw(31) << " " <<
 		setfill('\0') << std::endl;
-	std::cout << std::setfill(' ') <<
+	_INFO << std::setfill(' ') <<
 		std::setw(11) << _myname <<
 		std::setw(11) << _myPid <<
 		std::setw(11) << getMsgTypeStr() <<
@@ -244,6 +261,16 @@ void pktmessage::copy(zmqpp::message &msg) {
 	setMsgType();
     _constructed = true;
 }
+void pktmessage::copyback(std::vector<std::string> &msg) {
+    for (auto &a : _msgBody) {
+        msg.push_back(a);
+    }
+}
+void pktmessage::copyback(zmqpp::message &msg) {
+    for (auto &a : _msgBody) {
+        msg.add(a);
+    }
+}
 bool pktmessage::validReqRespMsg(std::vector<std::string> &reqRespMsg) {
 	if ((reqRespMsg.size() == 0)) {
 		return false;
@@ -261,7 +288,11 @@ bool pktmessage::validReqRespMsg(std::vector<std::string> &reqRespMsg) {
 bool pktmessage::validTopicMsg(std::vector<std::string> &topicMsg) {
 	if (topicMsg.size() == 0) {
 		return false;
-	} else if (topicMsg.size() < 5) {
+	} else if (topicMsg.size() < 6) {
+		return false;
+	} else if (!topicMsg[TOPIC_MSG_FIELD_TOPIC].starts_with(TOPIC_FORMAT_START)) {
+		return false;
+	} else if (!isTopicContentValid(topicMsg[TOPIC_MSG_FIELD_EXTINFO])) {
 		return false;
 	} else {
 		return true;
@@ -315,7 +346,7 @@ bool pktmessage::fillReq(std::string reqType, std::vector<std::string> &requests
 
 bool pktmessage::fillResp(std::string respType) {
     if (!isclean()) {
-		std::cout << __PRETTY_FUNCTION__ << ":" << "UnClean msg to fill" << std::endl;
+		_INFO << __PRETTY_FUNCTION__ << ":" << "UnClean msg to fill" << std::endl;
         return false;
     } else {
         _msgType = MSG_TYPE_RESP;
@@ -330,7 +361,7 @@ bool pktmessage::fillResp(std::string respType) {
 }
 bool pktmessage::fillResp(std::string respType, std::string &response) {
     if (!isclean()) {
-		std::cout << __PRETTY_FUNCTION__ << ":" << "UnClean msg to fill" << std::endl;
+		_INFO << __PRETTY_FUNCTION__ << ":" << "UnClean msg to fill" << std::endl;
         return false;
     } else {
         _msgType = MSG_TYPE_RESP;
@@ -345,7 +376,7 @@ bool pktmessage::fillResp(std::string respType, std::string &response) {
 }
 bool pktmessage::fillResp(std::string respType, std::vector<std::string> &responses) {
 	if (!isclean()) {
-		std::cout << __PRETTY_FUNCTION__ << ":" << "UnClean msg to fill" << std::endl;
+		_INFO << __PRETTY_FUNCTION__ << ":" << "UnClean msg to fill" << std::endl;
         return false;
     } else {
         _msgType = MSG_TYPE_REQ;
